@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 7 Dec 2024 15:30:01 +0100
+Subject: nanopc-t6: enable usb_host0_xhci, u2phy0, u2phy0_otg for ums
+
+---
+ arch/arm/dts/rk3588-nanopc-t6-u-boot.dtsi | 18 ++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/arch/arm/dts/rk3588-nanopc-t6-u-boot.dtsi b/arch/arm/dts/rk3588-nanopc-t6-u-boot.dtsi
+index 8465dcd4c9c..06b2429da29 100644
+--- a/arch/arm/dts/rk3588-nanopc-t6-u-boot.dtsi
++++ b/arch/arm/dts/rk3588-nanopc-t6-u-boot.dtsi
+@@ -15,10 +15,28 @@
+ 	bootph-pre-ram;
+ 	vdd-microvolts = <1800000>;
+ };
+ 
+ &sfc {
+ 	flash@0 {
+ 		bootph-pre-ram;
+ 		bootph-some-ram;
+ 	};
+ };
++
++&u2phy0 {
++	status = "okay";
++};
++
++&u2phy0_otg {
++	status = "okay";
++};
++
++&usbdp_phy0 {
++	status = "okay";
++};
++
++&usb_host0_xhci {
++	dr_mode = "peripheral";
++	maximum-speed = "high-speed";
++	status = "okay";
++};
+-- 
+Armbian
+
