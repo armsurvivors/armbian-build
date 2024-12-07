@@ -67,8 +67,8 @@ function post_family_config_branch_edge__cm3588_nas_use_mainline_uboot() {
 
 	declare -g BOOTDELAY=1                                       # Wait for UART interrupt to enter UMS/RockUSB mode etc
 	declare -g BOOTSOURCE="https://github.com/u-boot/u-boot.git" # We ❤️ Mainline U-Boot
-	declare -g BOOTBRANCH="tag:v2024.10"
-	declare -g BOOTPATCHDIR="v2024.10"
+	declare -g BOOTBRANCH="tag:v2025.01-rc3"
+	declare -g BOOTPATCHDIR="v2025.01"
 	# Don't set BOOTDIR, allow shared U-Boot source directory for disk space efficiency
 
 	declare -g UBOOT_TARGET_MAP="BL31=${RKBIN_DIR}/${BL31_BLOB} ROCKCHIP_TPL=${RKBIN_DIR}/${DDR_BLOB};;u-boot-rockchip.bin"
