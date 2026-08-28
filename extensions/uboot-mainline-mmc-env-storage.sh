@@ -9,6 +9,9 @@
 #   meson64 (OFFSET=4 MiB, MBR): 0x300000 (3 MiB) + redundant at 0x320000, 0x20000 each.
 #     u-boot.bin is written from LBA 1 and runs ~0.8-1 MiB contiguously.
 #
+# Refuses to run on boards that have SPI NOR (BOOT_SUPPORT_SPI=yes, an SPI target in UBOOT_TARGET_MAP, or a
+# defconfig that already sets CONFIG_ENV_IS_IN_SPI_FLASH) -- those should keep their env in SPI.
+#
 # Overridable per board/build: UBOOT_MMC_ENV_OFFSET, UBOOT_MMC_ENV_SIZE, UBOOT_MMC_ENV_OFFSET_REDUND,
 # UBOOT_MMC_ENV_FWENV_MODE (follow|fixed), UBOOT_MMC_ENV_DEVICE_INDEX, UBOOT_MMC_ENV_FORCE.
 #
@@ -80,6 +83,29 @@ function extension_prepare_config__uboot_mainline_mmc_env_storage() {
 	EXTRA_IMAGE_SUFFIXES+=("-mmcenv") # global array
 }
 
+# Refuse to run on boards that have usable SPI NOR: they should keep their env there instead.
+# Runs as extension_finish_config so UBOOT_TARGET_MAP/BOOT_SUPPORT_SPI are final (late_family_config already ran).
+# There is no single "board has SPI" flag in the tree, so check every signal boards actually use:
+#   - BOOT_SUPPORT_SPI=yes         rockchip convention (~40 boards)
+#   - an spi entry in UBOOT_TARGET_MAP   e.g. odroidhc4/odroidn2 'armbian_target=spi', or a *-spi.bin output
+# Note write_uboot_platform_mtd() is NOT a usable signal: rockchip64_common defines it for every board,
+# including the SPI-less ones this extension exists for.
+function extension_finish_config__uboot_mainline_mmc_env_storage() {
+	[[ "${UBOOT_MMC_ENV_FORCE:-}" == "yes" ]] && return 0
+
+	declare spi_reason=""
+	if [[ "${BOOT_SUPPORT_SPI}" == "yes" ]]; then
+		spi_reason="BOOT_SUPPORT_SPI=yes"
+	elif [[ "${UBOOT_TARGET_MAP}" == *spi* ]]; then
+		spi_reason="UBOOT_TARGET_MAP has an SPI target"
+	fi
+
+	if [[ -n "${spi_reason}" ]]; then
+		exit_with_error "${EXTENSION}: ${BOARD} has SPI flash (${spi_reason})" \
+			"this extension is for SPI-less boards; put the env in SPI instead (see nanopct6/rock-5b), or set UBOOT_MMC_ENV_FORCE=yes"
+	fi
+}
+
 # 900_ prefix so this runs *after* any board-level post_config_uboot_target__* (implicitly 500_) that might
 # also touch env config. Runs per u-boot target, with .config present, right before the framework's olddefconfig.
 function post_config_uboot_target__900_uboot_mainline_mmc_env_storage() {
@@ -94,7 +120,7 @@ function post_config_uboot_target__900_uboot_mainline_mmc_env_storage() {
 			"BOOTBRANCH='${BOOTBRANCH}' is too old for ${BOARD}; set a modern BOOTBRANCH/BOOTBRANCH_BOARD"
 	fi
 
-	# This extension is for boards without SPI NOR. If the board already put its env there, something is wrong.
+	# Last net, for SPI boards that extension_finish_config could not spot from the board config alone.
 	if grep -q "^CONFIG_ENV_IS_IN_SPI_FLASH=y" .config && [[ "${UBOOT_MMC_ENV_FORCE:-}" != "yes" ]]; then
 		exit_with_error "${EXTENSION}: ${BOARD} already stores its u-boot env in SPI flash" \
 			"this extension is meant for SPI-less boards; set UBOOT_MMC_ENV_FORCE=yes to move the env to MMC anyway"
@@ -139,7 +165,7 @@ function check_uboot_produced_binary_file__uboot_mainline_mmc_env_storage() {
 			"it is written at $(printf "0x%X" "${write_offset}") and ends at $(printf "0x%X" "${binfile_end}"), past the env at ${UBOOT_MMC_ENV_OFFSET}"
 	fi
 
-	display_alert "${EXTENSION}" "'${base_binfile}' ends at $(printf "0x%X" "${binfile_end}"), clear of env at ${UBOOT_MMC_ENV_OFFSET}" "debug"
+	display_alert "${EXTENSION}" "'${base_binfile}' ends at $(printf "0x%X" "${binfile_end}"), clear of env at ${UBOOT_MMC_ENV_OFFSET}" "info"
 }
 
 # Install the userspace side: a boot-time generator for /etc/fw_env.config, plus a build-time version of the same
