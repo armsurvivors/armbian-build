@@ -20,7 +20,7 @@ BOOTPATCHDIR="v2026.07"
 
 # Use extlinux and u-boot-menu extension
 declare -g SRC_EXTLINUX="yes"
-declare -g SRC_CMDLINE="loglevel=7 splash=verbose console=ttyAML0,115200"
+declare -g SRC_CMDLINE="clk_ignore_unused pd_ignore_unused loglevel=7 splash=verbose console=ttyAML0,115200"
 enable_extension "u-boot-menu"
 
 # store u-boot env in emmc
