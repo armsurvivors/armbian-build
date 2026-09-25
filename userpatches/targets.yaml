@@ -53,16 +53,11 @@ targets:
     items:
       - { BOARD: mixtile-edge2, BRANCH: vendor }
       - { BOARD: mixtile-edge2, BRANCH: edge }
-      - { BOARD: mekotronics-r58x-pro, BRANCH: legacy }
-      - { BOARD: mekotronics-r58x-4g, BRANCH: legacy }
       - { BOARD: mekotronics-r58x-4g, BRANCH: edge }
       - { BOARD: mekotronics-r58x-pro, BRANCH: vendor }
       - { BOARD: mekotronics-r58x-pro, BRANCH: edge }
       - { BOARD: mekotronics-r58x-4g, BRANCH: vendor }
-      - { BOARD: mekotronics-r58x, BRANCH: legacy }
-      - { BOARD: mekotronics-r58-minipc, BRANCH: legacy }
       - { BOARD: mekotronics-r58s2, BRANCH: edge }
-      - { BOARD: mixtile-blade3, BRANCH: legacy }
       - { BOARD: mixtile-core3588e, BRANCH: edge }
       - { BOARD: odroidhc4, BRANCH: edge }
       - { BOARD: odroidn2, BRANCH: edge }
@@ -145,7 +140,7 @@ targets:
       - { BOARD: "rpi4b", BRANCH: "current" }
       #- { BOARD: "radxa-zero2" }
       - { BOARD: "odroidhc4" }
-      - { BOARD: "odroidhc4", BRANCH: "oldlts" } # 6.12, more stable?
+      #- { BOARD: "odroidhc4", BRANCH: "oldlts" } # 6.12, more stable?
       - { BOARD: "aml-t95z-plus" }
       - { BOARD: "cm3588-nas" }
       - { BOARD: "cm3588-nas", BRANCH: "vendor" }
@@ -191,7 +186,7 @@ targets:
       #- { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-lima-vz" } # for lima/vz etc
       - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
       - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
-      - { BOARD: gateway-dk, BRANCH: "current", CLOUD_IMAGE: "no" } # gateway-dk testing, @TODO remove eventually
+      #- { BOARD: gateway-dk, BRANCH: "current", CLOUD_IMAGE: "no" } # gateway-dk testing
 
 
   ## ---- Useful sometimes
