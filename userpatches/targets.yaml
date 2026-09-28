@@ -39,7 +39,7 @@ targets:
           #armhf: [ { BOARD: "tinkerboard", BRANCH: "current" } ]
 
   u-boot-only-for-some-boards:
-    enabled: yes
+    enabled: no
     configs: [ rpardini-generic ]
     pipeline:
       gha: *rpardini-gha
@@ -106,7 +106,7 @@ targets:
       - { BOARD: "recomputer-rk3588-devkit", BRANCH: "edge" }
 
   cloud-rescues:
-    enabled: yes
+    enabled: no
     configs: [ rpardini-generic ]
     pipeline:
       gha: *rpardini-gha
