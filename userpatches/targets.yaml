@@ -122,7 +122,7 @@ targets:
       - { BOARD: uefi-arm64, BRANCH: edge,  ENABLE_EXTENSIONS: uefi-rescue }
       #- { BOARD: uefi-x86, BRANCH: edge, ENABLE_EXTENSIONS: uefi-rescue }
 
-  k8s-cloud-edge-k8s-rawimg:
+  k8s-cloud-edge-k8s-rawimg-required:
     enabled: yes # keep, for sbcs tinkerbell
     configs: [ rpardini-generic ]
     pipeline:
@@ -138,35 +138,53 @@ targets:
         RELEASE: trixie
     items:
       - { BOARD: "rpi4b", BRANCH: "current" }
-      #- { BOARD: "radxa-zero2" }
-      - { BOARD: "odroidhc4" }
-      #- { BOARD: "odroidhc4", BRANCH: "oldlts" } # 6.12, more stable?
-      - { BOARD: "aml-t95z-plus" }
       - { BOARD: "cm3588-nas" }
+      - { BOARD: "mekotronics-r58x-pro" }
+      - { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
+      - { BOARD: "recomputer-rk3588-devkit" }
+
+  k8s-cloud-edge-k8s-rawimg-extra:
+    enabled: no # not for now
+    configs: [ rpardini-generic ]
+    pipeline:
+      gha: *rpardini-gha
+    vars:
+      BRANCH: "edge"
+      BUILD_MINIMAL: "no"
+      CLOUD_IMAGE: "yes"
+      BUILD_DESKTOP: "no"
+      ENABLE_EXTENSIONS: "cloud-metadata,k8s"
+    expand:
+      debian-testing:
+        RELEASE: trixie
+    items:
+      - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
+      - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
+      - { BOARD: "odroidhc4" }
+      - { BOARD: "aml-t95z-plus" }
       - { BOARD: "cm3588-nas", BRANCH: "vendor" }
       - { BOARD: "mixtile-blade3", BRANCH: "vendor" }
       - { BOARD: "mixtile-blade3" } # edge - retry 2026, after many fails in 2025-
-      - { BOARD: "mekotronics-r58x-pro" }
       - { BOARD: "mekotronics-r58x-pro", BRANCH: "vendor" }
       - { BOARD: "khadas-vim3l" } # for Jacob
       - { BOARD: "mixtile-core3588e" } # for Jacob...
-      - { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
-      #- { BOARD: "thinkpad-x13s", BRANCH: "sc8280xp" }
-      #- { BOARD: "rock-5b" } # For Lane
       - { BOARD: "radxa-e24c" }  # there and back again
       - { BOARD: "radxa-e24c", BRANCH: "vendor" }  # there and back again
+      - { BOARD: "recomputer-rk3576-devkit" }
+      - { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
+      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
+      #- { BOARD: "radxa-zero2" }
+      #- { BOARD: "odroidhc4", BRANCH: "oldlts" } # 6.12, more stable?
+      #- { BOARD: "thinkpad-x13s", BRANCH: "sc8280xp" }
+      #- { BOARD: "rock-5b" } # For Lane
       #- { BOARD: "nanopct6-lts" } # k3s
       #- { BOARD: "nanopct6-lts", BRANCH: "vendor" } # k3s
       #- { BOARD: "mekotronics-r58-4x4", BRANCH: "edge" }
       #- { BOARD: "mixtile-core3588e", BRANCH: "vendor" } # vendor NOT tested; edge works fine-ish
       #- { BOARD: "rpi4b", BRANCH: "current" }
-      - { BOARD: "recomputer-rk3576-devkit" }
-      - { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
-      - { BOARD: "recomputer-rk3588-devkit" }
-      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
 
   cloud-metadatas:
-    enabled: yes # keep, cloud-container-disk; k8s-only 2025; also used for Tinkerbell UEFI
+    enabled: no # keep, cloud-container-disk; k8s-only 2025; also used for Tinkerbell UEFI
     configs: [ rpardini-generic ]
     pipeline:
       gha: *rpardini-gha
@@ -184,8 +202,6 @@ targets:
       #- { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-qcow2-initrd,k8s" }
       #- { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-qcow2-initrd,k8s" }
       #- { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-lima-vz" } # for lima/vz etc
-      - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
-      - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
       #- { BOARD: gateway-dk, BRANCH: "current", CLOUD_IMAGE: "no" } # gateway-dk testing
 
 
