@@ -242,7 +242,7 @@ function pre_customize_image__400_k8s_debfoster() {
 		# NOT armbian-firmware; it is not needed anyway on uefi images (or -full would, but certainly the regular one)
 	elif [[ "${BOARDFAMILY}" == "bcm2711" ]]; then
 		display_alert "k8s: RPi4" "preserving bsp-cli / kernel / dtb" "info"
-		debfoster_keepers+=("armbian-bsp-cli-${BOARD}-${BRANCH}-raspifw-mluc-cloud" "linux-image-${BRANCH}-${LINUXFAMILY}" "linux-dtb-${BRANCH}-${LINUXFAMILY}")
+		debfoster_keepers+=("armbian-bsp-cli-${BOARD}-${BRANCH}-mluc-cloud" "linux-image-${BRANCH}-${LINUXFAMILY}" "linux-dtb-${BRANCH}-${LINUXFAMILY}")
 		if [[ "${DISTRIBUTION}" == "Debian" ]]; then
 			debfoster_keepers+=(firmware-brcm80211 firmware-misc-nonfree bluez-firmware bluetooth)
 		else
