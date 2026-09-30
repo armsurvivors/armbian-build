@@ -137,11 +137,15 @@ targets:
       debian-testing:
         RELEASE: trixie
     items:
+      # In the cluster right now
       - { BOARD: "rpi4b", BRANCH: "current" }
       - { BOARD: "cm3588-nas" }
       - { BOARD: "mekotronics-r58x-pro" }
       - { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
       - { BOARD: "recomputer-rk3588-devkit" }
+      # On the bench
+      - { BOARD: "mixtile-blade3" }
+      - { BOARD: "radxa-e24c" }
 
   k8s-cloud-edge-k8s-rawimg-extra:
     enabled: no # not for now
@@ -164,11 +168,9 @@ targets:
       - { BOARD: "aml-t95z-plus" }
       - { BOARD: "cm3588-nas", BRANCH: "vendor" }
       - { BOARD: "mixtile-blade3", BRANCH: "vendor" }
-      - { BOARD: "mixtile-blade3" } # edge - retry 2026, after many fails in 2025-
       - { BOARD: "mekotronics-r58x-pro", BRANCH: "vendor" }
       - { BOARD: "khadas-vim3l" } # for Jacob
       - { BOARD: "mixtile-core3588e" } # for Jacob...
-      - { BOARD: "radxa-e24c" }  # there and back again
       - { BOARD: "radxa-e24c", BRANCH: "vendor" }  # there and back again
       - { BOARD: "recomputer-rk3576-devkit" }
       - { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
