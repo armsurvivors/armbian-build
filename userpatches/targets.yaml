@@ -147,6 +147,9 @@ targets:
       - { BOARD: "mixtile-blade3" }
       - { BOARD: "radxa-e24c" }
       - { BOARD: "aml-c400-plus" }
+      # UEFI's, for testing on VMs
+      - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
+      - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
 
   k8s-cloud-edge-k8s-rawimg-extra:
     enabled: no # not for now
@@ -163,8 +166,6 @@ targets:
       debian-testing:
         RELEASE: trixie
     items:
-      - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
-      - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
       - { BOARD: "odroidhc4" }
       - { BOARD: "aml-t95z-plus" }
       - { BOARD: "cm3588-nas", BRANCH: "vendor" }
