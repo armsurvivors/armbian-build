@@ -188,7 +188,7 @@ targets:
       #- { BOARD: "rpi4b", BRANCH: "current" }
 
   cloud-metadatas:
-    enabled: no # keep, cloud-container-disk; k8s-only 2025; also used for Tinkerbell UEFI
+    enabled: yes # keep, cloud-container-disk; k8s-only 2025; also used for Tinkerbell UEFI
     configs: [ rpardini-generic ]
     pipeline:
       gha: *rpardini-gha
