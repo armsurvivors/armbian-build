@@ -151,6 +151,7 @@ targets:
       - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
       - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
       # Rockchip vendor-next (v6.12)
+      - { BOARD: "nanopct6-lts", BRANCH: "vendor" } # Also keep building vendor (6.1)
       - { BOARD: "cm3588-nas", BRANCH: "vendor-next" }
       - { BOARD: "mekotronics-r58x-pro", BRANCH: "vendor-next" }
       - { BOARD: "mixtile-blade3", BRANCH: "vendor-next" }
