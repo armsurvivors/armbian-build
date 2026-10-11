@@ -150,6 +150,13 @@ targets:
       # UEFI's, for testing on VMs
       - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
       - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
+      # Rockchip vendor-next (v6.12)
+      - { BOARD: "cm3588-nas", BRANCH: "vendor-next" }
+      - { BOARD: "mekotronics-r58x-pro", BRANCH: "vendor-next" }
+      - { BOARD: "mixtile-blade3", BRANCH: "vendor-next" }
+      - { BOARD: "radxa-e24c", BRANCH: "vendor-next" }  # there and back again
+      - { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor-next", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
+      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor-next", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
 
   k8s-cloud-edge-k8s-rawimg-extra:
     enabled: no # not for now
