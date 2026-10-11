@@ -8,7 +8,11 @@ common-gha-configs:
         rootfs-amd64: "ubuntu-latest"
         image-amd64: "ubuntu-latest"
         rootfs-arm64: [ "self-hosted", "Linux", 'armbian', "rootfs-arm64" ]
-        image-arm64: [ "self-hosted", "Linux", 'armbian', "image-arm64" ]
+      by-name-and-arch-overflow-max: # first 'max' jobs use 'runs-on'; the rest use 'runs-on-over-max'
+        image-arm64:
+          max: 5
+          runs-on: [ "self-hosted", "Linux", 'armbian', "image-arm64" ]
+          runs-on-over-max: "ubuntu-24.04-arm"
 
 targets:
 
