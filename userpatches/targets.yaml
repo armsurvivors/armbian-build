@@ -43,7 +43,7 @@ targets:
           #armhf: [ { BOARD: "tinkerboard", BRANCH: "current" } ]
 
   u-boot-only-for-some-boards:
-    enabled: no
+    enabled: yes
     configs: [ rpardini-generic ]
     pipeline:
       gha: *rpardini-gha
@@ -55,59 +55,59 @@ targets:
       CLOUD_IMAGE: "no"
       RELEASE: trixie
     items:
-      - { BOARD: mixtile-edge2, BRANCH: vendor }
-      - { BOARD: mixtile-edge2, BRANCH: edge }
-      - { BOARD: mekotronics-r58x-4g, BRANCH: edge }
-      - { BOARD: mekotronics-r58x-pro, BRANCH: vendor }
-      - { BOARD: mekotronics-r58x-pro, BRANCH: edge }
-      - { BOARD: mekotronics-r58x-4g, BRANCH: vendor }
-      - { BOARD: mekotronics-r58s2, BRANCH: edge }
-      - { BOARD: mixtile-core3588e, BRANCH: edge }
-      - { BOARD: odroidhc4, BRANCH: edge }
-      - { BOARD: odroidn2, BRANCH: edge }
-      - { BOARD: aml-t95z-plus, BRANCH: edge }
-      - { BOARD: khadas-vim3l, BRANCH: edge }
-      - { BOARD: khadas-vim3, BRANCH: edge }
-      - { BOARD: tinkerboard-2, BRANCH: edge }
-      - { BOARD: rockpro64, BRANCH: edge }
-      - { BOARD: odroidm1, BRANCH: edge }
-      - { BOARD: nanopi-r5c, BRANCH: edge }
-      - { BOARD: nanopi-r5s, BRANCH: edge }
-      - { BOARD: orangepi3b, BRANCH: edge }
-      - { BOARD: radxa-zero, BRANCH: edge }
-      - { BOARD: radxa-zero2, BRANCH: edge }
-      - { BOARD: bananapir2pro, BRANCH: edge }
-      - { BOARD: orangepi5, BRANCH: edge }
-      - { BOARD: orangepi5-plus, BRANCH: edge }
-      - { BOARD: orangepi5-plus, BRANCH: vendor }
-      - { BOARD: radxa-zero3, BRANCH: edge }
-      - { BOARD: radxa-rock-4d, BRANCH: edge }
-      - { BOARD: orangepi5, BRANCH: edge }
-      - { BOARD: rock-4se, BRANCH: edge }
-      - { BOARD: rock-5b, BRANCH: edge }
-      - { BOARD: rock-3a, BRANCH: edge }
-      - { BOARD: nanopi-r6c, BRANCH: edge }
-      - { BOARD: nanopi-r6s, BRANCH: edge }
-      - { BOARD: quartz64a, BRANCH: edge }
-      - { BOARD: nanopct6, BRANCH: edge }
       - { BOARD: nanopct6-lts, BRANCH: edge }
-      - { BOARD: mixtile-edge2, BRANCH: edge }
-      - { BOARD: cm3588-nas, BRANCH: edge }
-      - { BOARD: cm3588-nas, BRANCH: vendor }
-      - { BOARD: rockpi-4cplus, BRANCH: edge }
-      - { BOARD: radxa-e24c, BRANCH: edge }
-      - { BOARD: radxa-e24c, BRANCH: vendor } # same as edge
-      - { BOARD: tinkerboard, BRANCH: current }
-      - { BOARD: tritium-h3, BRANCH: edge } # sunxi
-      - { BOARD: tritium-h5, BRANCH: edge } # sunxi64
-      - { BOARD: "radxa-nio-12l", BRANCH: edge } # genio
-      - { BOARD: "aml-q96x-rouge", BRANCH: edge } # aml tvbox from rouge
-      - { BOARD: "bananapim7" , BRANCH: "vendor" }
-      - { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor" }
-      - { BOARD: "recomputer-rk3576-devkit", BRANCH: "edge" }
-      #- { BOARD: bananapif3, BRANCH: edge } # riscv64 - gitee repo hangs on matrix prepare
-      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor" }
-      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "edge" }
+      #- { BOARD: mixtile-edge2, BRANCH: vendor }
+      #- { BOARD: mixtile-edge2, BRANCH: edge }
+      #- { BOARD: mekotronics-r58x-4g, BRANCH: edge }
+      #- { BOARD: mekotronics-r58x-pro, BRANCH: vendor }
+      #- { BOARD: mekotronics-r58x-pro, BRANCH: edge }
+      #- { BOARD: mekotronics-r58x-4g, BRANCH: vendor }
+      #- { BOARD: mekotronics-r58s2, BRANCH: edge }
+      #- { BOARD: mixtile-core3588e, BRANCH: edge }
+      #- { BOARD: odroidhc4, BRANCH: edge }
+      #- { BOARD: odroidn2, BRANCH: edge }
+      #- { BOARD: aml-t95z-plus, BRANCH: edge }
+      #- { BOARD: khadas-vim3l, BRANCH: edge }
+      #- { BOARD: khadas-vim3, BRANCH: edge }
+      #- { BOARD: tinkerboard-2, BRANCH: edge }
+      #- { BOARD: rockpro64, BRANCH: edge }
+      #- { BOARD: odroidm1, BRANCH: edge }
+      #- { BOARD: nanopi-r5c, BRANCH: edge }
+      #- { BOARD: nanopi-r5s, BRANCH: edge }
+      #- { BOARD: orangepi3b, BRANCH: edge }
+      #- { BOARD: radxa-zero, BRANCH: edge }
+      #- { BOARD: radxa-zero2, BRANCH: edge }
+      #- { BOARD: bananapir2pro, BRANCH: edge }
+      #- { BOARD: orangepi5, BRANCH: edge }
+      #- { BOARD: orangepi5-plus, BRANCH: edge }
+      #- { BOARD: orangepi5-plus, BRANCH: vendor }
+      #- { BOARD: radxa-zero3, BRANCH: edge }
+      #- { BOARD: radxa-rock-4d, BRANCH: edge }
+      #- { BOARD: orangepi5, BRANCH: edge }
+      #- { BOARD: rock-4se, BRANCH: edge }
+      #- { BOARD: rock-5b, BRANCH: edge }
+      #- { BOARD: rock-3a, BRANCH: edge }
+      #- { BOARD: nanopi-r6c, BRANCH: edge }
+      #- { BOARD: nanopi-r6s, BRANCH: edge }
+      #- { BOARD: quartz64a, BRANCH: edge }
+      #- { BOARD: nanopct6, BRANCH: edge }
+      #- { BOARD: mixtile-edge2, BRANCH: edge }
+      #- { BOARD: cm3588-nas, BRANCH: edge }
+      #- { BOARD: cm3588-nas, BRANCH: vendor }
+      #- { BOARD: rockpi-4cplus, BRANCH: edge }
+      #- { BOARD: radxa-e24c, BRANCH: edge }
+      #- { BOARD: radxa-e24c, BRANCH: vendor } # same as edge
+      #- { BOARD: tinkerboard, BRANCH: current }
+      #- { BOARD: tritium-h3, BRANCH: edge } # sunxi
+      #- { BOARD: tritium-h5, BRANCH: edge } # sunxi64
+      #- { BOARD: "radxa-nio-12l", BRANCH: edge } # genio
+      #- { BOARD: "aml-q96x-rouge", BRANCH: edge } # aml tvbox from rouge
+      #- { BOARD: "bananapim7" , BRANCH: "vendor" }
+      #- { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor" }
+      #- { BOARD: "recomputer-rk3576-devkit", BRANCH: "edge" }
+      ##- { BOARD: bananapif3, BRANCH: edge } # riscv64 - gitee repo hangs on matrix prepare
+      #- { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor" }
+      #- { BOARD: "recomputer-rk3588-devkit", BRANCH: "edge" }
 
   cloud-rescues:
     enabled: no
