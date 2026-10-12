@@ -151,17 +151,19 @@ targets:
       - { BOARD: "mixtile-blade3" }
       - { BOARD: "radxa-e24c" }
       - { BOARD: "aml-c400-plus" }
-      # UEFI's, for testing on VMs
-      - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
-      - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
-      # Rockchip vendor-next (v6.12)
-      - { BOARD: "nanopct6-lts", BRANCH: "vendor" } # Also keep building vendor (6.1)
-      - { BOARD: "cm3588-nas", BRANCH: "vendor-next" }
-      - { BOARD: "mekotronics-r58x-pro", BRANCH: "vendor-next" }
-      - { BOARD: "mixtile-blade3", BRANCH: "vendor-next" }
-      - { BOARD: "radxa-e24c", BRANCH: "vendor-next" }  # there and back again
-      - { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor-next", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
-      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor-next", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
+      # # UEFI's, for testing on VMs
+      # - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
+      # - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
+      # Rockchip vendor (6.1)
+      - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
+      ## Rockchip vendor-next (v6.12)
+      #- { BOARD: "nanopct6-lts", BRANCH: "vendor" } # Also keep building vendor (6.1)
+      #- { BOARD: "cm3588-nas", BRANCH: "vendor-next" }
+      #- { BOARD: "mekotronics-r58x-pro", BRANCH: "vendor-next" }
+      #- { BOARD: "mixtile-blade3", BRANCH: "vendor-next" }
+      #- { BOARD: "radxa-e24c", BRANCH: "vendor-next" }  # there and back again
+      #- { BOARD: "recomputer-rk3576-devkit", BRANCH: "vendor-next", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
+      #- { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor-next", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
 
   k8s-cloud-edge-k8s-rawimg-extra:
     enabled: no # not for now
