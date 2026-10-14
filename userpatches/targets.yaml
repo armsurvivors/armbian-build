@@ -110,7 +110,7 @@ targets:
       #- { BOARD: "recomputer-rk3588-devkit", BRANCH: "edge" }
 
   cloud-rescues:
-    enabled: no
+    enabled: yes
     configs: [ rpardini-generic ]
     pipeline:
       gha: *rpardini-gha
