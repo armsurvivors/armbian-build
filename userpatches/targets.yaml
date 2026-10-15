@@ -142,14 +142,14 @@ targets:
         RELEASE: trixie
     items:
       # In the cluster right now
-      - { BOARD: "rpi4b", BRANCH: "current" }
+      #- { BOARD: "rpi4b", BRANCH: "current" }
       - { BOARD: "cm3588-nas" }
-      - { BOARD: "mekotronics-r58x-pro" }
-      - { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
-      - { BOARD: "recomputer-rk3588-devkit" }
+      #- { BOARD: "mekotronics-r58x-pro" }
+      #- { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
+      #- { BOARD: "recomputer-rk3588-devkit" }
       # On the bench
-      - { BOARD: "mixtile-blade3" }
-      - { BOARD: "radxa-e24c" }
+      #- { BOARD: "mixtile-blade3" }
+      #- { BOARD: "radxa-e24c" }
       - { BOARD: "aml-c400-plus" }
       # # UEFI's, for testing on VMs
       # - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-initrd,k8s" }
