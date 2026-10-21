@@ -57,8 +57,8 @@ targets:
     items:
       - { BOARD: nanopct6-lts, BRANCH: edge }
       - { BOARD: "recomputer-rk3588-devkit", BRANCH: "edge" }
-      #- { BOARD: mixtile-edge2, BRANCH: vendor }
-      #- { BOARD: mixtile-edge2, BRANCH: edge }
+      - { BOARD: mixtile-edge2, BRANCH: vendor }
+      - { BOARD: mixtile-edge2, BRANCH: edge }
       #- { BOARD: mekotronics-r58x-4g, BRANCH: edge }
       #- { BOARD: mekotronics-r58x-pro, BRANCH: vendor }
       #- { BOARD: mekotronics-r58x-pro, BRANCH: edge }
