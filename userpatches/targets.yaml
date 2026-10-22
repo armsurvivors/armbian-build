@@ -59,6 +59,8 @@ targets:
       - { BOARD: "recomputer-rk3588-devkit", BRANCH: "edge" }
       - { BOARD: mixtile-edge2, BRANCH: vendor }
       - { BOARD: mixtile-edge2, BRANCH: edge }
+      - { BOARD: mixtile-blade3, BRANCH: vendor }
+      - { BOARD: mixtile-blade3, BRANCH: edge }
       #- { BOARD: mekotronics-r58x-4g, BRANCH: edge }
       #- { BOARD: mekotronics-r58x-pro, BRANCH: vendor }
       #- { BOARD: mekotronics-r58x-pro, BRANCH: edge }
@@ -149,7 +151,7 @@ targets:
       #- { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
       #- { BOARD: "recomputer-rk3588-devkit" }
       # On the bench
-      #- { BOARD: "mixtile-blade3" }
+      - { BOARD: "mixtile-blade3" }
       #- { BOARD: "radxa-e24c" }
       - { BOARD: "aml-c400-plus" }
       # # UEFI's, for testing on VMs
