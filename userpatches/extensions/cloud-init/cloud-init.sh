@@ -61,6 +61,9 @@ function extension_prepare_config__990_late_finish_cloud_init_config() {
 	# stuff cloud-images shouldn't have, but also armbian itself shouldnt have:
 	ci_packages_remove+=("rsyslog") # use journald # @todo armbian should keep journald logs on disk
 
+	# fake-hwclock 0.14 (trixie) always restores the build date, even over a correct RTC; breaks https datasources. timesyncd's clock file covers RTC-less boards.
+	ci_packages_remove+=("fake-hwclock")
+
 	# these should be part of armbian's defaults
 	ci_packages_install+=("zstd")
 
