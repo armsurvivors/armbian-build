@@ -196,7 +196,6 @@ targets:
       - { BOARD: "recomputer-rk3588-devkit", BRANCH: "vendor", SEEED_DEFAULT_ENABLE: "no" } # no wifi, no bt, no usbgadget, etc
       #- { BOARD: "radxa-zero2" }
       #- { BOARD: "odroidhc4", BRANCH: "oldlts" } # 6.12, more stable?
-      #- { BOARD: "thinkpad-x13s", BRANCH: "sc8280xp" }
       #- { BOARD: "rock-5b" } # For Lane
       #- { BOARD: "nanopct6-lts" } # k3s
       #- { BOARD: "nanopct6-lts", BRANCH: "vendor" } # k3s
@@ -218,6 +217,7 @@ targets:
       debian-stable:
         RELEASE: trixie
     items:
+      - { BOARD: "thinkpad-x13s", BRANCH: "edge" }
       - { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-qcow2-initrd" } # for elquicko x86
       - { BOARD: uefi-arm64, ENABLE_EXTENSIONS: "cloud-metadata-qcow2-initrd" } # for elquicko arm64
       #- { BOARD: uefi-x86, ENABLE_EXTENSIONS: "cloud-metadata-qcow2-initrd,k8s" }
