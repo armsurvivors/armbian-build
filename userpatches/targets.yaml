@@ -148,7 +148,7 @@ targets:
       #- { BOARD: "rpi4b", BRANCH: "current" }
       - { BOARD: "cm3588-nas" }
       #- { BOARD: "mekotronics-r58x-pro" }
-      #- { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
+      - { BOARD: "radxa-nio-12l", ENABLE_EXTENSIONS: "ufs,cloud-metadata,k8s" }
       #- { BOARD: "recomputer-rk3588-devkit" }
       # On the bench
       - { BOARD: "mixtile-blade3" }
