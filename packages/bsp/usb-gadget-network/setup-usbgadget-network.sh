@@ -6,6 +6,10 @@ deviceinfo_manufacturer="Armbian"
 #deviceinfo_usb_idProduct=
 #deviceinfo_usb_serialnumber=
 
+# Optional settings, eg. USB_GADGET_ACM=yes to add an ACM serial function (ttyGS0 on the device)
+# shellcheck disable=SC1091
+[ -f /etc/default/usb-gadget-network ] && . /etc/default/usb-gadget-network
+
 setup_usb_network_configfs() {
 	# See: https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
 	CONFIGFS=/sys/kernel/config/usb_gadget
@@ -23,6 +27,9 @@ setup_usb_network_configfs() {
 	# Default values for USB-related deviceinfo variables
 	usb_idVendor="${deviceinfo_usb_idVendor:-0x1D6B}"   # Linux Foundation
 	usb_idProduct="${deviceinfo_usb_idProduct:-0x0103}" # NCM (Ethernet) Gadget
+	if [ "${USB_GADGET_ACM}" = "yes" ]; then
+		usb_idProduct="${deviceinfo_usb_idProduct:-0x0104}" # Multifunction Composite Gadget
+	fi
 	usb_serialnumber="${deviceinfo_usb_serialnumber:-0123456789}"
 	usb_network_function="ncm.usb0"
 
@@ -47,6 +54,12 @@ setup_usb_network_configfs() {
 	mkdir $CONFIGFS/g1/functions/"$usb_network_function" ||
 		echo "  Couldn't create $CONFIGFS/g1/functions/$usb_network_function"
 
+	# Optional ACM serial function
+	if [ "${USB_GADGET_ACM}" = "yes" ]; then
+		mkdir $CONFIGFS/g1/functions/acm.GS0 ||
+			echo "  Couldn't create $CONFIGFS/g1/functions/acm.GS0"
+	fi
+
 	# Create configuration instance for the gadget
 	mkdir $CONFIGFS/g1/configs/c.1 ||
 		echo "  Couldn't create $CONFIGFS/g1/configs/c.1"
@@ -59,6 +72,10 @@ setup_usb_network_configfs() {
 	# Link the network instance to the configuration
 	ln -s $CONFIGFS/g1/functions/"$usb_network_function" $CONFIGFS/g1/configs/c.1 ||
 		echo "  Couldn't symlink $usb_network_function"
+	if [ "${USB_GADGET_ACM}" = "yes" ]; then
+		ln -s $CONFIGFS/g1/functions/acm.GS0 $CONFIGFS/g1/configs/c.1 ||
+			echo "  Couldn't symlink acm.GS0"
+	fi
 
 	# Check if there's an USB Device Controller
 	if [ -z "$(ls /sys/class/udc)" ]; then
