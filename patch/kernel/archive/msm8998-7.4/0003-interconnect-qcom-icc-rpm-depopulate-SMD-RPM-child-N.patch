@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Date: Mon, 19 Oct 2026 17:12:41 +0300
+Subject: interconnect: qcom: icc-rpm: depopulate SMD RPM child NoCs
+
+qnoc_probe() creates the child NoC devices (the QCM2290 and SM6115
+virtual NoCs, the MSM8939 SNoC MM and the MSM8998 MMSS AHB NoC) with
+of_platform_populate(), but nothing ever removes them. Unbinding the
+parent NoC therefore leaves the children bound, although they live in
+the parent's register space and use the parent's regmap, which devres
+frees together with the parent. Binding the parent again does not
+recreate them either, as their DT nodes are still marked as populated,
+so they keep running with the state of the previous parent instance.
+
+Populate the children with devm_of_platform_populate() and depopulate
+them at the start of qnoc_remove(), so that they go away before the
+provider they depend on. Leaving it to devres alone would only remove
+them after qnoc_remove() has already torn the parent provider down.
+
+Fixes: e39bf2972c6e ("interconnect: icc-rpm: Support child NoC device probe")
+Signed-off-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+---
+ drivers/interconnect/qcom/icc-rpm.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/interconnect/qcom/icc-rpm.c b/drivers/interconnect/qcom/icc-rpm.c
+index 111111111111..222222222222 100644
+--- a/drivers/interconnect/qcom/icc-rpm.c
++++ b/drivers/interconnect/qcom/icc-rpm.c
+@@ -675,7 +675,7 @@ int qnoc_probe(struct platform_device *pdev)
+ 
+ 	/* Populate child NoC devices if any */
+ 	if (of_get_child_count(dev->of_node) > 0) {
+-		ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
++		ret = devm_of_platform_populate(dev);
+ 		if (ret)
+ 			goto err_deregister_provider;
+ 	}
+@@ -697,6 +697,7 @@ void qnoc_remove(struct platform_device *pdev)
+ {
+ 	struct qcom_icc_provider *qp = platform_get_drvdata(pdev);
+ 
++	devm_of_platform_depopulate(&pdev->dev);
+ 	icc_provider_deregister(&qp->provider);
+ 	icc_nodes_remove(&qp->provider);
+ 	clk_disable_unprepare(qp->bus_clk);
+-- 
+Armbian
+

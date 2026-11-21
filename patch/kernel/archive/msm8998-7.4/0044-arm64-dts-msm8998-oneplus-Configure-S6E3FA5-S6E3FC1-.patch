@@ -1,0 +1,134 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jami Kettunen <jami.kettunen@protonmail.com>
+Date: Sat, 22 May 2021 19:22:43 +0300
+Subject: arm64: dts: msm8998-oneplus-*: Configure S6E3FA5 & S6E3FC1 panels
+
+These Samsung DSI panels are used on the OnePlus 5/5T respectively.
+Additionally disable simplefb until a proper handoff solution can be
+found to avoid conflicts between it and the MSM DRM driver.
+---
+ arch/arm64/boot/dts/qcom/msm8998-oneplus-cheeseburger.dts |  8 ++
+ arch/arm64/boot/dts/qcom/msm8998-oneplus-common.dtsi      | 67 ++++++++++
+ arch/arm64/boot/dts/qcom/msm8998-oneplus-dumpling.dts     |  5 +
+ 3 files changed, 80 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/msm8998-oneplus-cheeseburger.dts b/arch/arm64/boot/dts/qcom/msm8998-oneplus-cheeseburger.dts
+index 111111111111..222222222222 100644
+--- a/arch/arm64/boot/dts/qcom/msm8998-oneplus-cheeseburger.dts
++++ b/arch/arm64/boot/dts/qcom/msm8998-oneplus-cheeseburger.dts
+@@ -47,3 +47,11 @@ rmi4-f1a@1a {
+ 		syna,codes = <KEY_BACK KEY_APPSELECT>;
+ 	};
+ };
++
++/* Display */
++&panel {
++	compatible = "samsung,s6e3fa5";
++
++	/* The panel is mounted upside down on the OnePlus 5 */
++	rotation = <180>;
++};
+diff --git a/arch/arm64/boot/dts/qcom/msm8998-oneplus-common.dtsi b/arch/arm64/boot/dts/qcom/msm8998-oneplus-common.dtsi
+index 111111111111..222222222222 100644
+--- a/arch/arm64/boot/dts/qcom/msm8998-oneplus-common.dtsi
++++ b/arch/arm64/boot/dts/qcom/msm8998-oneplus-common.dtsi
+@@ -46,6 +46,7 @@ framebuffer0: framebuffer@9d400000 {
+ 				 <&mmcc MDSS_PCLK0_CLK>,
+ 				 <&mmcc MDSS_ESC0_CLK>;
+ 			power-domains = <&mmcc MDSS_GDSC>;
++			status = "disabled";
+ 		};
+ 	};
+ 
+@@ -542,9 +543,75 @@ &remoteproc_slpi {
+ 	firmware-name = "qcom/msm8998/oneplus/slpi_v2.mbn";
+ };
+ 
++&mdss {
++	status = "okay";
++};
++
++&mdss_mdp {
++	status = "okay";
++};
++
++&mdss_dsi0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	status = "okay";
++
++	vdd-supply = <&vreg_l1a_0p875>;
++	vdda-supply = <&vreg_l2a_1p2>;
++
++	panel: panel@0 {
++		reg = <0>;
++
++		reset-gpios = <&tlmm 94 GPIO_ACTIVE_LOW>;
++		disp-te-gpios = <&tlmm 11 GPIO_ACTIVE_LOW>;
++
++		vddio-supply = <&vreg_l14a_1p88>; // TODO: Could this be moved under dsi0?
++
++		pinctrl-names = "default";
++		pinctrl-0 = <&panel_reset_n &disp_en_default &mdp_vsync_n>;
++
++		port {
++			panel_in: endpoint {
++				remote-endpoint = <&mdss_dsi0_out>;
++			};
++		};
++	};
++};
++
++&mdss_dsi0_phy {
++	status = "okay";
++	vdds-supply = <&vreg_l1a_0p875>;
++};
++
++&mdss_dsi0_out {
++	remote-endpoint = <&panel_in>;
++	data-lanes = <0 1 2 3>;
++};
++
+ &tlmm {
+ 	gpio-reserved-ranges = <0 4>, <81 4>;
+ 
++	disp_en_default: disp-en-default-state {
++		pins = "gpio62";
++		function = "gpio";
++		drive-strength = <8>;
++		bias-disable;
++	};
++
++	panel_reset_n: panel-reset-n-state {
++		pins = "gpio94";
++		function = "gpio";
++		drive-strength = <8>;
++		bias-disable;
++	};
++
++	mdp_vsync_n: mdp-vsync-n-state {
++		pins = "gpio11";
++		function = "mdp_vsync_a";
++		drive-strength = <2>;
++		bias-pull-down;
++	};
++
+ 	hall_sensor_default: hall-sensor-default-state {
+ 		pins = "gpio124";
+ 		function = "gpio";
+diff --git a/arch/arm64/boot/dts/qcom/msm8998-oneplus-dumpling.dts b/arch/arm64/boot/dts/qcom/msm8998-oneplus-dumpling.dts
+index 111111111111..222222222222 100644
+--- a/arch/arm64/boot/dts/qcom/msm8998-oneplus-dumpling.dts
++++ b/arch/arm64/boot/dts/qcom/msm8998-oneplus-dumpling.dts
+@@ -24,3 +24,8 @@ &framebuffer0 {
+ &rmi4_f12 {
+ 	touchscreen-y-mm = <137>;
+ };
++
++/* Display */
++&panel {
++	compatible = "samsung,s6e3fc1";
++};
+-- 
+Armbian
+

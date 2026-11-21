@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabricio Akio <fabricioakio@gmail.com>
+Date: Fri, 2 Oct 2026 14:18:18 -0300
+Subject: power: supply: pmi8998_fg: release the charger reference
+
+power_supply_get_by_reference() takes a reference on the charger that
+the driver never puts. Use the managed variant, which puts it when the
+driver is unbound.
+
+Signed-off-by: Fabricio Akio <fabricioakio@gmail.com>
+---
+ drivers/power/supply/pmi8998_fg.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/supply/pmi8998_fg.c b/drivers/power/supply/pmi8998_fg.c
+index 111111111111..222222222222 100644
+--- a/drivers/power/supply/pmi8998_fg.c
++++ b/drivers/power/supply/pmi8998_fg.c
+@@ -654,8 +654,8 @@ static int pmi8998_fg_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	/* Optional: Get charger power supply for status checking */
+-	chip->chg_psy = power_supply_get_by_reference(dev_fwnode(chip->dev),
+-						    "power-supplies");
++	chip->chg_psy = devm_power_supply_get_by_reference(chip->dev,
++							   "power-supplies");
+ 	if (IS_ERR(chip->chg_psy)) {
+ 		ret = PTR_ERR(chip->chg_psy);
+ 		dev_warn(chip->dev, "Failed to get charger supply: %d\n", ret);
+-- 
+Armbian
+

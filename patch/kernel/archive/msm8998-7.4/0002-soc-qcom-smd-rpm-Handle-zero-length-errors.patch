@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Date: Mon, 19 Oct 2026 17:12:40 +0300
+Subject: soc: qcom: smd-rpm: Handle zero-length errors
+
+Prevent a potential underflow as the code below uses 'ALIGN(n, 4) - 1'
+as an index into an array. For n=0, that ends up as '-1U'.
+
+Fixes: 936f14cf4e67 ("soc: qcom: Driver for the Qualcomm RPM over SMD")
+Signed-off-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+[db: report the empty error as -EINVAL instead of a success]
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+---
+ drivers/soc/qcom/smd-rpm.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/soc/qcom/smd-rpm.c b/drivers/soc/qcom/smd-rpm.c
+index 111111111111..222222222222 100644
+--- a/drivers/soc/qcom/smd-rpm.c
++++ b/drivers/soc/qcom/smd-rpm.c
+@@ -173,6 +173,12 @@ static int qcom_smd_rpm_callback(struct rpmsg_device *rpdev,
+ 		case RPM_MSG_TYPE_MSG_ID:
+ 			break;
+ 		case RPM_MSG_TYPE_ERR:
++			if (!msg_length) {
++				dev_err(&rpdev->dev, "Got unknown RPM error\n");
++				status = -EINVAL;
++				break;
++			}
++
+ 			len = min_t(u32, ALIGN(msg_length, 4), sizeof(msgbuf));
+ 			memcpy_fromio(msgbuf, msg->message, len);
+ 			msgbuf[len - 1] = 0;
+-- 
+Armbian
+

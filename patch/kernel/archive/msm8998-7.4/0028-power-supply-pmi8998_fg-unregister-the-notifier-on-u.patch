@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabricio Akio <fabricioakio@gmail.com>
+Date: Fri, 2 Oct 2026 14:18:18 -0300
+Subject: power: supply: pmi8998_fg: unregister the notifier on unbind
+
+Probe registers a power-supply notifier whose notifier_block lives in
+the devm-allocated chip, and nothing unregisters it. Once the driver is
+unbound, the notifier chain keeps the freed entry, and the next
+power-supply change calls through it: reloading the module oopses in
+power_supply_changed_work(). The status work the notifier schedules is
+not cancelled either.
+
+Unregister the notifier and cancel the work in a managed action
+registered after the notifier, so that it runs before the chip is
+freed.
+
+Signed-off-by: Fabricio Akio <fabricioakio@gmail.com>
+---
+ drivers/power/supply/pmi8998_fg.c | 14 ++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/drivers/power/supply/pmi8998_fg.c b/drivers/power/supply/pmi8998_fg.c
+index 111111111111..222222222222 100644
+--- a/drivers/power/supply/pmi8998_fg.c
++++ b/drivers/power/supply/pmi8998_fg.c
+@@ -553,6 +553,14 @@ static int pmi8998_fg_notifier_call(struct notifier_block *nb, unsigned long val
+ 	return NOTIFY_OK;
+ }
+ 
++static void pmi8998_fg_unregister_notifier(void *data)
++{
++	struct pmi8998_fg_chip *chip = data;
++
++	power_supply_unreg_notifier(&chip->nb);
++	cancel_delayed_work_sync(&chip->status_changed_work);
++}
++
+ static int pmi8998_fg_probe(struct platform_device *pdev)
+ {
+ 	struct power_supply_config supply_config = {};
+@@ -665,6 +673,12 @@ static int pmi8998_fg_probe(struct platform_device *pdev)
+ 				"Failed to register notifier: %d\n", ret);
+ 			return ret;
+ 		}
++
++		ret = devm_add_action_or_reset(chip->dev,
++					       pmi8998_fg_unregister_notifier,
++					       chip);
++		if (ret)
++			return ret;
+ 	}
+ 
+ 	return 0;
+-- 
+Armbian
+

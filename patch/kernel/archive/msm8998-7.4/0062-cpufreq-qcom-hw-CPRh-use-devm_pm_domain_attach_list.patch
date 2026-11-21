@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 21 Nov 2026 15:22:52 +0100
+Subject: cpufreq: qcom-hw: CPRh: use devm_pm_domain_attach_list()
+
+devm_pm_opp_attach_genpd() is gone since v6.11; attach the CPR "perf"
+power domain with devm_pm_domain_attach_list() and PD_FLAG_REQUIRED_OPP
+instead, as qcom-cpufreq-nvmem does.
+---
+ drivers/cpufreq/qcom-cpufreq-hw.c | 16 ++++++++--
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/cpufreq/qcom-cpufreq-hw.c b/drivers/cpufreq/qcom-cpufreq-hw.c
+index 111111111111..222222222222 100644
+--- a/drivers/cpufreq/qcom-cpufreq-hw.c
++++ b/drivers/cpufreq/qcom-cpufreq-hw.c
+@@ -295,7 +295,12 @@ static struct {
+ 	const struct qcom_cpufreq_soc_data *soc_data;
+ } qcom_cpufreq;
+ 
+-static const char *cprh_genpd_names[] = { "perf", NULL };
++static const char * const cprh_genpd_names[] = { "perf" };
++static const struct dev_pm_domain_attach_data cprh_pd_data = {
++	.pd_names = cprh_genpd_names,
++	.num_pd_names = ARRAY_SIZE(cprh_genpd_names),
++	.pd_flags = PD_FLAG_DEV_LINK_ON | PD_FLAG_REQUIRED_OPP,
++};
+ static unsigned long cpu_hw_rate, xo_rate;
+ static bool icc_scaling_enabled;
+ 
+@@ -510,6 +515,7 @@ static int qcom_cpufreq_gen_params(struct device *cpu_dev,
+ 				   u8 *num_entries)
+ {
+ 	struct device **genpd_cpr_vdev;
++	struct dev_pm_domain_list *pd_list;
+ 	struct platform_device *pdev = cpufreq_get_driver_data();
+ 	const struct qcom_cpufreq_soc_data *soc_data = qcom_cpufreq.soc_data;
+ 	struct device *dev = &pdev->dev;
+@@ -518,9 +524,13 @@ static int qcom_cpufreq_gen_params(struct device *cpu_dev,
+ 	unsigned long rate;
+ 	int apm_uV, acc_uV, i, gpd_opp_cnt, ret = 0;
+ 
+-	ret = devm_pm_opp_attach_genpd(cpu_dev, cprh_genpd_names, &genpd_cpr_vdev);
+-	if (ret)
++	ret = devm_pm_domain_attach_list(cpu_dev, &cprh_pd_data, &pd_list);
++	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "Could not attach to pm_domain: %d\n", ret);
++	if (!ret || !pd_list)
++		return dev_err_probe(dev, -ENODEV, "No CPR power domain attached\n");
++
++	genpd_cpr_vdev = pd_list->pd_devs;
+ 
+ 	if (IS_ERR_OR_NULL(*genpd_cpr_vdev))
+ 		return dev_err_probe(dev, -EINVAL, "Got a NULL genpd vdev");
+-- 
+Armbian
+
