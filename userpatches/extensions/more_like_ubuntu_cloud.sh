@@ -21,6 +21,10 @@ function extension_prepare_config__prepare_mluc() {
 	declare -g EXTRA_ROOTFS_NAME="${EXTRA_ROOTFS_NAME}-mluc" # Unique rootfs name for this extension; goes together with add_packages_to_rootfs
 
 	declare -g EXTRA_BSP_NAME="${EXTRA_BSP_NAME}-mluc" # Unique bsp name for this extension: more like ubuntu cloud
+
+	# No autologin gettys: the BSP tweak below removes armbian-autologin-agetty, and the core getty overrides
+	# (CONSOLE_AUTOLOGIN) would point serial-getty@ at it, so serial consoles would never get a login prompt.
+	declare -g CONSOLE_AUTOLOGIN="no"
 }
 
 # Tweak the BSP, removing a bunch of stuff that's great for interactive end-users and memory-deprived systems,

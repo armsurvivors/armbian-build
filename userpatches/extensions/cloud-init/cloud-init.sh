@@ -31,6 +31,11 @@ function extension_prepare_config__950_prepare_cloud_init() { # do it very late 
 	# Change to eth0-dhcp-wait to use https:// includes in user-data, or to something else for non-ethernet devices
 	declare -g CLOUD_INIT_NET_CONFIG_FILE="${CLOUD_INIT_NET_CONFIG_FILE:-eth0-dhcp}"
 
+	# yes: cloud-init's network stage waits (up to CLOUD_INIT_TIMESYNCD_TIMEOUT seconds) for systemd-timesyncd to sync
+	# the clock. For boards without a usable RTC: otherwise https:// user-data fails with "certificate is not yet valid".
+	declare -g CLOUD_INIT_TIMESYNCD="${CLOUD_INIT_TIMESYNCD:-no}"
+	declare -g CLOUD_INIT_TIMESYNCD_TIMEOUT="${CLOUD_INIT_TIMESYNCD_TIMEOUT:-120}"
+
 	# If using custom userdata, include that to image suffix; sharing these images might leak the userdata source.
 	if [[ "${SKIP_CLOUD_INIT_CONFIG}" != "yes" ]]; then
 		if [[ "a${CLOUD_INIT_USER_DATA_URL}" != "afiles" ]]; then
@@ -216,6 +221,34 @@ function pre_customize_image__lockdown_root_and_password_logins() {
 	run_host_command_logged sed -i -e "'s/PermitRootLogin yes/PermitRootLogin without-password/g'" "${SDCARD}"/etc/ssh/sshd_config
 	run_host_command_logged sed -i -e "'s/#PasswordAuthentication yes/PasswordAuthentication no/g'" "${SDCARD}"/etc/ssh/sshd_config
 	chroot_sdcard passwd -l root
+}
+
+function pre_customize_image__cloud_init_wait_for_timesyncd() {
+	[[ "${CLOUD_INIT_TIMESYNCD}" != "yes" ]] && return 0
+	display_alert "cloud-init: waiting for time sync" "up to ${CLOUD_INIT_TIMESYNCD_TIMEOUT}s" "info"
+	[[ -f "${SDCARD}"/usr/lib/systemd/systemd-timesyncd ]] || exit_with_error "CLOUD_INIT_TIMESYNCD=yes but systemd-timesyncd is not in the image"
+
+	# time-sync.target is only reached once the clock is synchronized (with systemd-time-wait-sync enabled)
+	chroot_sdcard systemctl enable systemd-time-wait-sync.service
+	mkdir -p "${SDCARD}"/etc/systemd/system/systemd-time-wait-sync.service.d
+	cat <<- EOD > "${SDCARD}"/etc/systemd/system/systemd-time-wait-sync.service.d/10-armbian-timeout.conf
+		# Don't hold up cloud-init forever without network (CLOUD_INIT_TIMESYNCD)
+		[Service]
+		TimeoutStartSec=${CLOUD_INIT_TIMESYNCD_TIMEOUT}
+	EOD
+
+	# Network stage (cloud-init-network.service; cloud-init.service before cloud-init 24.3) after the clock is set
+	declare ci_unit
+	for ci_unit in cloud-init-network.service cloud-init.service; do
+		mkdir -p "${SDCARD}/etc/systemd/system/${ci_unit}.d"
+		cat <<- EOD > "${SDCARD}/etc/systemd/system/${ci_unit}.d/10-armbian-wait-time-sync.conf"
+			# Fetch https:// user-data only once the clock is right (CLOUD_INIT_TIMESYNCD)
+			[Unit]
+			Wants=time-sync.target
+			After=time-sync.target
+		EOD
+	done
+	return 0
 }
 
 function pre_customize_image__restore_preserved_systemd_and_netplan_stuff() {
