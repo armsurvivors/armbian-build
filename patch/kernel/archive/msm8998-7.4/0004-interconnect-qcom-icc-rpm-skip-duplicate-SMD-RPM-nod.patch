@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Date: Mon, 19 Oct 2026 17:12:42 +0300
+Subject: interconnect: qcom: icc-rpm: skip duplicate SMD RPM node votes
+
+icc_sync_state() can invoke the provider set callback with the same
+node as both source and destination. Do not submit a second RPM
+bandwidth vote for that node.
+
+Fixes: 751f4d14cdb4 ("interconnect: icc-rpm: Set destination bandwidth as well as source bandwidth")
+Signed-off-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+---
+ drivers/interconnect/qcom/icc-rpm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/interconnect/qcom/icc-rpm.c b/drivers/interconnect/qcom/icc-rpm.c
+index 111111111111..222222222222 100644
+--- a/drivers/interconnect/qcom/icc-rpm.c
++++ b/drivers/interconnect/qcom/icc-rpm.c
+@@ -427,7 +427,7 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
+ 	if (ret)
+ 		return ret;
+ 
+-	if (dst_qn) {
++	if (dst_qn && dst != src) {
+ 		ret = qcom_icc_rpm_set(dst_qn, dst_qn->sum_avg, qp->ignore_enxio);
+ 		if (ret)
+ 			return ret;
+-- 
+Armbian
+

@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 21 Nov 2026 22:41:00 +0100
+Subject: [PATCH] cpufreq: qcom-hw: CPRh: fix OSM parameter generation after
+ the genpd attach
+
+- Without the required-OPP linking the CPU device isn't attached to the
+  OPP table yet when the OSM parameters are generated: CPR3 populated
+  the shared table through the genpd virtual device. Count and walk the
+  OPPs on that device instead.
+- devm_pm_domain_attach_list() returns the number of attached domains;
+  don't hand that back to the caller as an error.
+---
+ drivers/cpufreq/qcom-cpufreq-hw.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/cpufreq/qcom-cpufreq-hw.c b/drivers/cpufreq/qcom-cpufreq-hw.c
+index 8d6998dafa73..46b0dcc3d72c 100644
+--- a/drivers/cpufreq/qcom-cpufreq-hw.c
++++ b/drivers/cpufreq/qcom-cpufreq-hw.c
+@@ -550,8 +550,13 @@ static int qcom_cpufreq_gen_params(struct device *cpu_dev,
+ 	if (!cpr_data)
+ 		return dev_err_probe(dev, -ENODATA, "Cannot get CPR data\n");
+ 
+-	/* Get the count of available OPPs coming from the power domain */
+-	gpd_opp_cnt = dev_pm_opp_get_opp_count(cpu_dev);
++	/*
++	 * Get the count of available OPPs coming from the power domain. CPR3
++	 * populated the (shared) CPU OPP table through the genpd virtual
++	 * device; the CPU device itself is only attached to it later, when the
++	 * LUT gets read back.
++	 */
++	gpd_opp_cnt = dev_pm_opp_get_opp_count(*genpd_cpr_vdev);
+ 	if (gpd_opp_cnt < 2) {
+ 		ret = gpd_opp_cnt > 0 ? -EINVAL : gpd_opp_cnt;
+ 		return dev_err_probe(dev, ret, "Got invalid number of OPPs\n");
+@@ -598,7 +603,7 @@ static int qcom_cpufreq_gen_params(struct device *cpu_dev,
+ 		 * defined frequency, so we quit the loop gracefully without
+ 		 * signaling any error, as this is the expected behavior.
+ 		 */
+-		genpd_opp = dev_pm_opp_find_freq_ceil(cpu_dev, &rate);
++		genpd_opp = dev_pm_opp_find_freq_ceil(*genpd_cpr_vdev, &rate);
+ 		if (IS_ERR(genpd_opp))
+ 			break;
+ 
+@@ -695,7 +700,8 @@ static int qcom_cpufreq_gen_params(struct device *cpu_dev,
+ 
+ 	*num_entries = i;
+ 
+-	return ret;
++	/* ret still holds the number of attached PM domains */
++	return 0;
+ }
+ 
+ static inline u32 qcom_cpufreq_acd_regbit(u8 acd_reg_offset)
+-- 
+2.47.3
+

@@ -1,0 +1,177 @@
+# Qualcomm MSM8998 Snapdragon 835 octa core 6/8GB RAM 64/128GB UFS phone (OnePlus 5)
+# Generate kernel and rootfs image for Qcom ABL booting.
+# - Not A/B: flash the rootfs image to "userdata" (~50GB; "system" is only 3GB) and the boot image to "boot":
+#     fastboot boot <img>.boot_msm8998-oneplus-cheeseburger.img      # try first, without flashing
+#     fastboot flash userdata <img>.rootfs.img
+#     fastboot flash boot <img>.boot_msm8998-oneplus-cheeseburger.img
+# - No UART: console is an USB ACM gadget (ttyGS0 on the phone, ttyACM0 on the host), network is USB NCM:
+#   the phone is a DHCP client on usb0 (fixed MACs from the serial); bridge the host side of the gadget into a LAN.
+# - Kernel upgrades rewrite the "boot" partition (packages/bsp/qcom-abl/zz-update-abl-kernel).
+declare -g BOARD_NAME="OnePlus 5"
+declare -g BOARD_VENDOR="oneplus"
+declare -g BOARD_MAINTAINER="rpardini"
+declare -g INTRODUCED="2017"
+declare -g BOARDFAMILY="msm8998"
+declare -g KERNEL_TARGET="edge"
+declare -g EXTRAWIFI="no"
+declare -g BOOTCONFIG="none"
+declare -g IMAGE_PARTITION_TABLE="gpt"
+declare -g SERIALCON="ttyGS0"
+declare -g -a ABL_DTB_LIST=("msm8998-oneplus-cheeseburger")
+# Last console= is /dev/console (systemd status): tty1, so boot never blocks on an unread ttyGS0 (the getty still runs there).
+# clk_ignore_unused keeps the bootloader framebuffer alive until msm drm takes over
+# Modem, WiFi and IPA off for now: the WCN3990 WLAN firmware (runs on the modem) crashes the modem a few seconds after
+# wlan0 comes up, and a modem stuck in "crashed" makes reboots hang. rmtfs is disabled below for the same reason.
+declare -g BOOTIMG_CMDLINE_EXTRA="console=ttyGS0,115200 console=tty1 clk_ignore_unused modprobe.blacklist=ipa,qcom_q6v5_mss,ath10k_snoc"
+
+# No armbian-firmware (-full is ~2.5GB, almost all for other hardware). The bsp ships exactly what the phone needs:
+# OnePlus-signed blobs (OxygenOS 10.0.1, extracted by Jami Kettunen) plus the matching Adreno 540, WCN3990 WiFi
+# and BT files. Archived repo, so pin the commit.
+declare -g INSTALL_ARMBIAN_FIRMWARE="no"
+declare -g ONEPLUS5_FIRMWARE_REPO="https://github.com/JamiKettunen/firmware-mainline-oneplus5"
+declare -g ONEPLUS5_FIRMWARE_REF="commit:59031e44e7f69132ed961d3276f6e82ad3bca7e1"
+declare -g ONEPLUS5_FIRMWARE_DIR="firmware-mainline-oneplus5"
+
+function oneplus-cheeseburger_is_userspace_supported() {
+	[[ "${RELEASE}" == "trixie" ]] && return 0
+	return 1
+}
+
+function post_family_tweaks_bsp__oneplus-cheeseburger_bsp() {
+	: "${destination:?}"
+	display_alert "${BOARD}" "Adding USB gadget, ABL kernel hook and firmware to bsp-cli" "info"
+
+	# USB gadget: NCM network + ACM serial, in initramfs and after boot
+	install -Dm755 "${SRC}/packages/bsp/usb-gadget-network/setup-usbgadget-network.sh" "${destination}/usr/local/bin/setup-usbgadget-network.sh"
+	install -Dm755 "${SRC}/packages/bsp/usb-gadget-network/remove-usbgadget-network.sh" "${destination}/usr/local/bin/remove-usbgadget-network.sh"
+	install -Dm644 "${SRC}/packages/bsp/usb-gadget-network/usbgadget-rndis.service" "${destination}/usr/lib/systemd/system/usbgadget-rndis.service"
+	install -Dm755 "${SRC}/packages/bsp/usb-gadget-network/usb-gadget-initramfs-hook" "${destination}/etc/initramfs-tools/hooks/usb-gadget"
+	install -Dm755 "${SRC}/packages/bsp/usb-gadget-network/usb-gadget-initramfs-premount" "${destination}/etc/initramfs-tools/scripts/init-premount/usb-gadget"
+	install -Dm755 "${SRC}/packages/bsp/usb-gadget-network/dropbear" "${destination}/etc/initramfs-tools/scripts/init-premount/dropbear"
+	install -Dm755 "${SRC}/packages/bsp/usb-gadget-network/kill-dropbear" "${destination}/etc/initramfs-tools/scripts/init-bottom/kill-dropbear"
+	add_file_from_stdin_to_bsp_destination "/etc/default/usb-gadget-network" <<- 'USB_GADGET_DEFAULTS'
+		# No UART on the OnePlus 5: add an ACM serial function for the console (ttyGS0)
+		USB_GADGET_ACM=yes
+		# DHCP client on usb0 instead of a DHCP server; the host bridges the gadget into its LAN
+		USB_GADGET_IP=dhcp
+	USB_GADGET_DEFAULTS
+
+	# usb0 is not matched by Armbian's "e*" netplan; DHCP on it (after the gadget service brings it up)
+	add_file_from_stdin_to_bsp_destination "/etc/netplan/85-usb-gadget-dhcp.yaml" <<- 'USB_GADGET_NETPLAN'
+		network:
+		  version: 2
+		  renderer: networkd
+		  ethernets:
+		    usb0:
+		      dhcp4: yes
+		      dhcp6: yes
+	USB_GADGET_NETPLAN
+
+	# rmtfs (-s) stops the modem when it exits; at shutdown that must happen while qrtr-ns/pd-mapper/tqftpserv still
+	# run, otherwise the modem never acks the stop ("timeout waiting for shutdown") and the reboot hangs.
+	# The modem is needed for WiFi: the WCN3990 firmware service (WLFW) runs on it.
+	add_file_from_stdin_to_bsp_destination "/etc/systemd/system/rmtfs.service.d/10-armbian-shutdown-order.conf" <<- 'RMTFS_ORDER'
+		[Unit]
+		After=qrtr-ns.service pd-mapper.service tqftpserv.service
+	RMTFS_ORDER
+
+	# WLAN board data (bdwlan.*, data.msc) is not in the firmware repo; copy it from the phone's own "modem"
+	# partition on boot when missing. The WLAN firmware on the modem fetches it over QRTR TFTP (tqftpserv).
+	declare file_added_to_bsp_destination # filled in by add_file_from_stdin_to_bsp_destination
+	add_file_from_stdin_to_bsp_destination "/usr/sbin/oneplus5-firmware-from-partitions" <<- 'FW_COPY'
+		#!/bin/bash
+		# Copy firmware the firmware repo lacks from the phone's own partitions (read-only mounts).
+		set -euo pipefail
+		dest=/lib/firmware/qcom/msm8998/oneplus
+		part=/dev/disk/by-partlabel/modem
+		[[ -b "${part}" ]] || { echo "no ${part}, nothing to do"; exit 0; }
+		mnt="$(mktemp -d)"
+		trap 'umount "${mnt}" 2> /dev/null || true; rmdir "${mnt}"' EXIT
+		mount -o ro "${part}" "${mnt}"
+		mkdir -p "${dest}"
+		shopt -s nullglob
+		for f in "${mnt}"/image/bdwlan* "${mnt}"/image/data.msc; do
+			[[ -e "${dest}/$(basename "${f}")" ]] && continue
+			cp -v "${f}" "${dest}/"
+		done
+	FW_COPY
+	run_host_command_logged chmod -v +x "${file_added_to_bsp_destination}"
+	add_file_from_stdin_to_bsp_destination "/usr/lib/systemd/system/oneplus5-firmware.service" <<- 'FW_UNIT'
+		[Unit]
+		Description=Copy OnePlus 5 WLAN board data from the modem partition
+		ConditionPathExists=!/lib/firmware/qcom/msm8998/oneplus/bdwlan.bin
+		DefaultDependencies=no
+		After=local-fs.target
+		Before=rmtfs.service tqftpserv.service
+
+		[Service]
+		Type=oneshot
+		ExecStart=/usr/sbin/oneplus5-firmware-from-partitions
+
+		[Install]
+		WantedBy=multi-user.target
+	FW_UNIT
+
+	# Rewrite the boot partition on kernel upgrades
+	install -Dm755 "${SRC}/packages/bsp/qcom-abl/zz-update-abl-kernel" "${destination}/etc/kernel/postinst.d/zz-update-abl-kernel"
+	add_file_from_stdin_to_bsp_destination "/etc/default/armbian-abl" <<- ABL_DEFAULTS
+		ABL_DTB="${ABL_DTB_LIST[0]}"
+		ABL_CMDLINE_EXTRA="${BOOTIMG_CMDLINE_EXTRA}"
+		ABL_KERNEL_FLAVOUR="${LINUXFAMILY}"
+	ABL_DEFAULTS
+
+	# All firmware: device-signed blobs at the paths the DT firmware-name properties use, plus Adreno/WiFi/BT
+	fetch_from_repo "${ONEPLUS5_FIRMWARE_REPO}" "${ONEPLUS5_FIRMWARE_DIR}" "${ONEPLUS5_FIRMWARE_REF}"
+	declare fw_src="${SRC}/cache/sources/${ONEPLUS5_FIRMWARE_DIR}"
+	[[ -f "${fw_src}/qcom/msm8998/oneplus/modem.mbn" ]] || exit_with_error "OnePlus 5 firmware not found" "${fw_src}"
+	mkdir -p "${destination}/lib/firmware"
+	run_host_command_logged cp -av "${fw_src}"/{qcom,qca,ath10k} "${destination}/lib/firmware/"
+
+	return 0
+}
+
+function post_family_tweaks_bsp__oneplus-cheeseburger_initramfs() {
+	display_alert "Adding to bsp-cli" "${BOARD}: modules and firmware in initrd" "info"
+	add_file_from_stdin_to_bsp_destination "/etc/initramfs-tools/modules" <<- 'EXTRA_MODULES'
+		i2c-qup
+		rmi_i2c
+		panel-samsung-s6e3fa5
+		msm
+	EXTRA_MODULES
+
+	declare file_added_to_bsp_destination # will be filled in by add_file_from_stdin_to_bsp_destination
+	add_file_from_stdin_to_bsp_destination "/etc/initramfs-tools/hooks/oneplus-cheeseburger-firmware" <<- 'FIRMWARE_HOOK'
+		#!/bin/bash
+		[[ "$1" == "prereqs" ]] && exit 0
+		. /usr/share/initramfs-tools/hook-functions
+		# Adreno 540, needed when msm drm loads from the initramfs
+		add_firmware "qcom/a530_pfp.fw"
+		add_firmware "qcom/a530_pm4.fw"
+		add_firmware "qcom/a540_gpmu.fw2"
+		add_firmware "qcom/msm8998/oneplus/a540_zap.mbn"
+	FIRMWARE_HOOK
+	run_host_command_logged chmod -v +x "${file_added_to_bsp_destination}"
+}
+
+function post_family_tweaks__oneplus-cheeseburger_userspace() {
+	if ! oneplus-cheeseburger_is_userspace_supported; then
+		if [[ "${RELEASE}" != "" ]]; then
+			display_alert "Missing userspace for ${BOARD}" "${RELEASE} does not have the userspace necessary to support the ${BOARD}" "warn"
+		fi
+		return 0
+	fi
+
+	# unudhcpd comes from the Armbian repo; enable it temporarily
+	mv "${SDCARD}"/etc/apt/sources.list.d/armbian.sources.disabled "${SDCARD}"/etc/apt/sources.list.d/armbian.sources
+	do_with_retries 3 chroot_sdcard_apt_get_update
+	display_alert "${BOARD}" "Installing board userspace" "info"
+	# qrtr/rmtfs/pd-mapper/tqftpserv: remoteprocs (modem, ADSP) and WCN3990 WiFi need them
+	do_with_retries 3 chroot_sdcard_apt_get_install qrtr-tools rmtfs protection-domain-mapper tqftpserv unudhcpd mkbootimg dropbear-bin
+	mv "${SDCARD}"/etc/apt/sources.list.d/armbian.sources "${SDCARD}"/etc/apt/sources.list.d/armbian.sources.disabled
+	do_with_retries 3 chroot_sdcard_apt_get_update
+
+	chroot_sdcard systemctl enable usbgadget-rndis.service oneplus5-firmware.service
+	# Modem is off (see BOOTIMG_CMDLINE_EXTRA): rmtfs would only fail and restart-loop
+	chroot_sdcard systemctl disable rmtfs.service
+	return 0
+}

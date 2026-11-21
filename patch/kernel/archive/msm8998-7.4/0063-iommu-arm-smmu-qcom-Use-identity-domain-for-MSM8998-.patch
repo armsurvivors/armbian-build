@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 21 Nov 2026 16:32:09 +0100
+Subject: [PATCH] iommu/arm-smmu-qcom: Use identity domain for MSM8998 MDSS
+
+The MDSS on MSM8998 keeps scanning out the bootloader splash framebuffer
+when the MMSS SMMU probes. Attaching it to a translated default domain
+makes every scanout fetch fault (iova inside the splash region), and the
+OnePlus 5 firmware resets into crashdump mode.
+
+Use an identity default domain for qcom,msm8998-mdss like the other
+Qualcomm MDSS instances, so the splash survives until the display driver
+takes over.
+---
+ drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+index 60688d834e11..59d2531e283a 100644
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -411,6 +411,7 @@ static const struct of_device_id qcom_smmu_client_of_match[] __maybe_unused = {
+ 	{ .compatible = "qcom,glymur-mdss" },
+ 	{ .compatible = "qcom,mdp4" },
+ 	{ .compatible = "qcom,mdss" },
++	{ .compatible = "qcom,msm8998-mdss" },
+ 	{ .compatible = "qcom,msm8998-mss-pil" },
+ 	{ .compatible = "qcom,qcm2290-mdss" },
+ 	{ .compatible = "qcom,sar2130p-mdss" },
+-- 
+2.47.3
+

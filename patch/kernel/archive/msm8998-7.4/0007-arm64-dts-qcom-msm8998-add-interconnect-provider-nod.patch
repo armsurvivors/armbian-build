@@ -1,0 +1,159 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Mon, 19 Oct 2026 17:12:45 +0300
+Subject: arm64: dts: qcom: msm8998: add interconnect provider nodes
+
+MSM8998 has an interconnect provider driver, but the SoC device tree
+describes none of the NoC devices it binds to, so no bus bandwidth or
+NoC clock scaling is possible and every consumer that wants to vote is
+left without a provider.
+
+Add the eight NoC nodes.  The AHB MMSS NoC shares its register space
+with the MMSS NoC and is described as its child.  The A1NoC and A2NoC
+register ranges are shrunk compared to the downstream ones, which
+overlap the SMMU and the MMSS NoC respectively.
+
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+---
+ arch/arm64/boot/dts/qcom/msm8998.dtsi | 89 ++++++++++
+ 1 file changed, 89 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/msm8998.dtsi b/arch/arm64/boot/dts/qcom/msm8998.dtsi
+index 111111111111..222222222222 100644
+--- a/arch/arm64/boot/dts/qcom/msm8998.dtsi
++++ b/arch/arm64/boot/dts/qcom/msm8998.dtsi
+@@ -8,6 +8,7 @@
+ #include <dt-bindings/clock/qcom,mmcc-msm8998.h>
+ #include <dt-bindings/clock/qcom,rpmcc.h>
+ #include <dt-bindings/firmware/qcom,scm.h>
++#include <dt-bindings/interconnect/qcom,msm8998.h>
+ #include <dt-bindings/power/qcom-rpmpd.h>
+ #include <dt-bindings/gpio/gpio.h>
+ 
+@@ -859,6 +860,13 @@ qusb2_hstx_trim: hstx-trim@23a {
+ 			};
+ 		};
+ 
++		bimc: interconnect@1008300 {
++			compatible = "qcom,msm8998-bimc";
++			reg = <0x01008300 0x77d00>;
++
++			#interconnect-cells = <2>;
++		};
++
+ 		tsens0: thermal@10ab000 {
+ 			compatible = "qcom,msm8998-tsens", "qcom,tsens-v2";
+ 			reg = <0x010ab000 0x1000>, /* TM */
+@@ -881,6 +889,42 @@ tsens1: thermal@10ae000 {
+ 			#thermal-sensor-cells = <1>;
+ 		};
+ 
++		cnoc: interconnect@1500000 {
++			compatible = "qcom,msm8998-cnoc";
++			reg = <0x01500000 0x10000>;
++
++			clocks = <&gcc GCC_CFG_NOC_USB3_AXI_CLK>;
++			clock-names = "iface";
++
++			#interconnect-cells = <2>;
++		};
++
++		snoc: interconnect@1620000 {
++			compatible = "qcom,msm8998-snoc";
++			reg = <0x01620000 0x40000>;
++
++			clocks = <&gcc GCC_MMSS_SYS_NOC_AXI_CLK>;
++			clock-names = "iface";
++
++			#interconnect-cells = <2>;
++		};
++
++		a1noc: interconnect@1660000 {
++			compatible = "qcom,msm8998-a1noc";
++			reg = <0x01660000 0x20000>;
++
++			clocks = <&gcc GCC_AGGRE1_UFS_AXI_CLK>,
++				 <&gcc GCC_UFS_AXI_CLK>,
++				 <&gcc GCC_AGGRE1_USB3_AXI_CLK>,
++				 <&gcc GCC_BLSP2_AHB_CLK>;
++			clock-names = "aggre1_ufs_axi",
++				      "ufs_axi",
++				      "usb_axi",
++				      "blsp2_ahb";
++
++			#interconnect-cells = <2>;
++		};
++
+ 		anoc1_smmu: iommu@1680000 {
+ 			compatible = "qcom,msm8998-smmu-v2", "qcom,smmu-v2";
+ 			reg = <0x01680000 0x10000>;
+@@ -915,6 +959,43 @@ anoc2_smmu: iommu@16c0000 {
+ 				<GIC_SPI 465 IRQ_TYPE_EDGE_RISING>;
+ 		};
+ 
++		a2noc: interconnect@1700000 {
++			compatible = "qcom,msm8998-a2noc";
++			reg = <0x01700000 0x40000>;
++
++			clocks = <&gcc GCC_SDCC2_AHB_CLK>,
++				 <&gcc GCC_SDCC4_AHB_CLK>,
++				 <&gcc GCC_BLSP1_AHB_CLK>,
++				 <&rpmcc RPM_SMD_IPA_CLK>;
++			clock-names = "sdcc2_ahb",
++				      "sdcc4_ahb",
++				      "blsp1_ahb",
++				      "ipa";
++
++			#interconnect-cells = <2>;
++		};
++
++		mnoc: interconnect@1740000 {
++			compatible = "qcom,msm8998-mnoc";
++			reg = <0x01740000 0x10000>;
++
++			clocks = <&mmcc MNOC_AHB_CLK>,
++				 <&mmcc MNOC_MAXI_CLK>;
++			clock-names = "iface",
++				      "mnoc_bus";
++
++			#interconnect-cells = <2>;
++
++			mnoc_ahb: interconnect-mnoc-ahb {
++				compatible = "qcom,msm8998-mnoc-ahb";
++
++				clocks = <&mmcc AHB_CLK_SRC>;
++				clock-names = "bus";
++
++				#interconnect-cells = <2>;
++			};
++		};
++
+ 		pcie0: pcie@1c00000 {
+ 			compatible = "qcom,pcie-msm8998", "qcom,pcie-msm8996";
+ 			reg = <0x01c00000 0x2000>,
+@@ -3181,6 +3262,7 @@ venus: video-codec@cc00000 {
+ 				 <&mmcc VIDEO_AXI_CLK>,
+ 				 <&mmcc VIDEO_MAXI_CLK>;
+ 			clock-names = "core", "iface", "bus", "mbus";
++
+ 			iommus = <&mmss_smmu 0x400>,
+ 				 <&mmss_smmu 0x401>,
+ 				 <&mmss_smmu 0x40a>,
+@@ -3290,6 +3372,13 @@ glink-edge {
+ 			};
+ 		};
+ 
++		gnoc: interconnect@17900000 {
++			compatible = "qcom,msm8998-gnoc";
++			reg = <0x17900000 0x10000>;
++
++			#interconnect-cells = <2>;
++		};
++
+ 		apcs_glb: mailbox@17911000 {
+ 			compatible = "qcom,msm8998-apcs-hmss-global",
+ 				     "qcom,msm8994-apcs-kpss-global";
+-- 
+Armbian
+

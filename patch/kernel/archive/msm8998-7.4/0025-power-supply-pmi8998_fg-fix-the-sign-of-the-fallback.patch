@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabricio Akio <fabricioakio@gmail.com>
+Date: Fri, 2 Oct 2026 08:02:39 -0300
+Subject: power: supply: pmi8998_fg: fix the sign of the fallback status
+
+pmi8998_fg_get_current() negates the PMIC's reading so that a charging
+battery reports a positive current, as the power-supply ABI requires.
+The status fallback, used when no charger status is known, still
+treats a negative current as charging, so it reports a charging battery
+as discharging and a discharging one as charging.
+
+Compare against the converted sign.
+
+Signed-off-by: Fabricio Akio <fabricioakio@gmail.com>
+---
+ drivers/power/supply/pmi8998_fg.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/supply/pmi8998_fg.c b/drivers/power/supply/pmi8998_fg.c
+index 111111111111..222222222222 100644
+--- a/drivers/power/supply/pmi8998_fg.c
++++ b/drivers/power/supply/pmi8998_fg.c
+@@ -346,9 +346,9 @@ static int pmi8998_fg_get_property(struct power_supply *psy,
+ 				val->intval = POWER_SUPPLY_STATUS_UNKNOWN;
+ 				break;
+ 			}
+-			if (temp < 0)
++			if (temp > 0)
+ 				val->intval = POWER_SUPPLY_STATUS_CHARGING;
+-			else if (temp > 0)
++			else if (temp < 0)
+ 				val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+ 			else
+ 				val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+-- 
+Armbian
+

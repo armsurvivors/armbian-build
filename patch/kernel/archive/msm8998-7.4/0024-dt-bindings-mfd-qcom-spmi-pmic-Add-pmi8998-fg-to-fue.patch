@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alexey Minnekhanov <alexeymin@postmarketos.org>
+Date: Thu, 18 Sep 2025 20:52:46 +0300
+Subject: dt-bindings: mfd: qcom,spmi-pmic: Add pmi8998-fg to fuel gauge
+ options
+
+Add newly added PMI8998 battery fuel gauge driver to the list of allowed
+subnodes of qcom SPMI PMICs. This fixes lots of dtbs_check errors.
+
+Signed-off-by: Alexey Minnekhanov <alexeymin@postmarketos.org>
+---
+ Documentation/devicetree/bindings/mfd/qcom,spmi-pmic.yaml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Documentation/devicetree/bindings/mfd/qcom,spmi-pmic.yaml b/Documentation/devicetree/bindings/mfd/qcom,spmi-pmic.yaml
+index 111111111111..222222222222 100644
+--- a/Documentation/devicetree/bindings/mfd/qcom,spmi-pmic.yaml
++++ b/Documentation/devicetree/bindings/mfd/qcom,spmi-pmic.yaml
+@@ -156,6 +156,7 @@ patternProperties:
+     type: object
+     oneOf:
+       - $ref: /schemas/power/supply/qcom,pm8916-bms-vm.yaml#
++      - $ref: /schemas/power/supply/qcom,pmi8998-fg.yaml#
+ 
+   "^charger@[0-9a-f]+$":
+     type: object
+-- 
+Armbian
+

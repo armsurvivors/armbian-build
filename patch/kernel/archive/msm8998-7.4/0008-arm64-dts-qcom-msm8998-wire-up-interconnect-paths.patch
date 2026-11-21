@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Mon, 19 Oct 2026 17:12:46 +0300
+Subject: arm64: dts: qcom: msm8998: wire up interconnect paths
+
+With the NoC providers described but no consumer referencing them, the
+NoC bus clocks stay at their boot rates: nothing votes for DDR or
+config bandwidth, so masters such as MDSS or UFS run on whatever the
+bootloader left behind.
+
+Add the interconnect paths for the GPU, MDSS, Venus, UFS, USB and SDHC2.
+PCIe is deliberately left out: MSM8998 has no route from the CPU to the
+PCIe config slave, and requesting one only makes the PCIe driver fail
+to probe.
+
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+---
+ arch/arm64/boot/dts/qcom/msm8998.dtsi | 38 ++++++++++
+ 1 file changed, 38 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/msm8998.dtsi b/arch/arm64/boot/dts/qcom/msm8998.dtsi
+index 111111111111..222222222222 100644
+--- a/arch/arm64/boot/dts/qcom/msm8998.dtsi
++++ b/arch/arm64/boot/dts/qcom/msm8998.dtsi
+@@ -8,6 +8,7 @@
+ #include <dt-bindings/clock/qcom,mmcc-msm8998.h>
+ #include <dt-bindings/clock/qcom,rpmcc.h>
+ #include <dt-bindings/firmware/qcom,scm.h>
++#include <dt-bindings/interconnect/qcom,icc.h>
+ #include <dt-bindings/interconnect/qcom,msm8998.h>
+ #include <dt-bindings/power/qcom-rpmpd.h>
+ #include <dt-bindings/gpio/gpio.h>
+@@ -1093,6 +1094,12 @@ ufshc: ufshc@1da4000 {
+ 			compatible = "qcom,msm8998-ufshc", "qcom,ufshc", "jedec,ufs-2.0";
+ 			reg = <0x01da4000 0x2500>;
+ 			interrupts = <GIC_SPI 265 IRQ_TYPE_LEVEL_HIGH>;
++			interconnects = <&a1noc MASTER_UFS QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>,
++					<&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ALWAYS
++					 &cnoc SLAVE_UFS_CFG QCOM_ICC_TAG_ALWAYS>;
++			interconnect-names = "ufs-ddr", "cpu-ufs";
++
+ 			phys = <&ufsphy>;
+ 			phy-names = "ufsphy";
+ 			lanes-per-direction = <2>;
+@@ -1622,6 +1629,10 @@ adreno_gpu: gpu@5000000 {
+ 				"rbcpr",
+ 				"core";
+ 
++			interconnects = <&bimc MASTER_OXILI QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>;
++			interconnect-names = "gfx-mem";
++
+ 			interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
+ 			iommus = <&adreno_smmu 0>;
+ 			operating-points-v2 = <&gpu_opp_table>;
+@@ -2276,6 +2287,12 @@ usb3: usb@a8f8800 {
+ 				      "sleep",
+ 				      "mock_utmi";
+ 
++			interconnects = <&a1noc MASTER_USB3 QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>,
++					<&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ALWAYS
++					 &cnoc SLAVE_USB3_0 QCOM_ICC_TAG_ALWAYS>;
++			interconnect-names = "usb-ddr", "apps-usb";
++
+ 			assigned-clocks = <&gcc GCC_USB30_MOCK_UTMI_CLK>,
+ 					  <&gcc GCC_USB30_MASTER_CLK>;
+ 			assigned-clock-rates = <19200000>, <120000000>;
+@@ -2355,6 +2372,12 @@ sdhc2: mmc@c0a4900 {
+ 				     <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
+ 			interrupt-names = "hc_irq", "pwr_irq";
+ 
++			interconnects = <&a2noc MASTER_SDCC_2 QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>,
++					<&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ALWAYS
++					 &cnoc SLAVE_SDCC_2 QCOM_ICC_TAG_ALWAYS>;
++			interconnect-names = "sdhc-ddr", "cpu-sdhc";
++
+ 			clock-names = "iface", "core", "xo";
+ 			clocks = <&gcc GCC_SDCC2_AHB_CLK>,
+ 				 <&gcc GCC_SDCC2_APPS_CLK>,
+@@ -2914,6 +2937,16 @@ mdss: display-subsystem@c900000 {
+ 				      "bus",
+ 				      "core";
+ 
++			interconnects = <&mnoc MASTER_MDP_P0 QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>,
++					<&mnoc MASTER_MDP_P1 QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>,
++					<&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ALWAYS
++					 &mnoc_ahb SLAVE_DISPLAY_CFG QCOM_ICC_TAG_ALWAYS>;
++			interconnect-names = "mdp0-mem",
++					     "mdp1-mem",
++					     "cpu-cfg";
++
+ 			power-domains = <&mmcc MDSS_GDSC>;
+ 			iommus = <&mmss_smmu 0>;
+ 
+@@ -3263,6 +3296,11 @@ venus: video-codec@cc00000 {
+ 				 <&mmcc VIDEO_MAXI_CLK>;
+ 			clock-names = "core", "iface", "bus", "mbus";
+ 
++			interconnects = <&mnoc MASTER_VENUS QCOM_ICC_TAG_ALWAYS
++					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>,
++					<&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ALWAYS
++					 &mnoc_ahb SLAVE_VENUS_CFG QCOM_ICC_TAG_ALWAYS>;
++			interconnect-names = "video-mem", "cpu-cfg";
+ 			iommus = <&mmss_smmu 0x400>,
+ 				 <&mmss_smmu 0x401>,
+ 				 <&mmss_smmu 0x40a>,
+-- 
+Armbian
+

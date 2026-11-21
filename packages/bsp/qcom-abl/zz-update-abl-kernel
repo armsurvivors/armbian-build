@@ -1,0 +1,67 @@
+#!/bin/bash
+# Rebuild the Android boot image after a kernel install/upgrade and write it to the ABL boot partition.
+# Board settings come from /etc/default/armbian-abl (installed by the board's bsp):
+#   ABL_DTB             DTB name without .dtb, relative to /usr/lib/linux-image-<version>/qcom/
+#   ABL_CMDLINE_EXTRA   extra kernel cmdline; must match BOOTIMG_CMDLINE_EXTRA used at image build time
+#   ABL_KERNEL_FLAVOUR  kernel flavour suffix (eg. "msm8998"), used to find the kernel when run without arguments
+# /boot/armbianEnv.txt provides abl_boot_partition_label and extraargs.
+set -e
+
+[[ -f /etc/default/armbian-abl ]] || {
+	echo "zz-update-abl-kernel: /etc/default/armbian-abl missing, not updating the boot partition" >&2
+	exit 0
+}
+# shellcheck disable=SC1091
+. /etc/default/armbian-abl
+
+# Debian kernel hooks pass the kernel version as the first argument; fall back to the newest kernel.
+version="$1"
+if [[ -z "${version}" ]]; then
+	version=$(ls -1 /boot/vmlinuz-*-"${ABL_KERNEL_FLAVOUR:?}" 2> /dev/null | sed 's|^/boot/vmlinuz-||' | sort -V | tail -n1)
+fi
+kernel="/boot/vmlinuz-${version}"
+ramdisk="/boot/initrd.img-${version}"
+dtb="/usr/lib/linux-image-${version}/qcom/${ABL_DTB:?}.dtb"
+for f in "${kernel}" "${ramdisk}" "${dtb}"; do
+	[[ -f "${f}" ]] || {
+		echo "zz-update-abl-kernel: ${f} not found" >&2
+		exit 1
+	}
+done
+
+root_uuid=$(sed -e 's/^.*root=UUID=//' -e 's/ .*$//' < /proc/cmdline)
+
+extraargs=""
+abl_boot_partition_label=""
+# shellcheck disable=SC1091
+[[ -f /boot/armbianEnv.txt ]] && . /boot/armbianEnv.txt
+
+tmp=$(mktemp -d)
+trap 'rm -rf "${tmp}"' EXIT
+gzip -c "${kernel}" > "${tmp}/Image.gz"
+cat "${tmp}/Image.gz" "${dtb}" > "${tmp}/Image.gz-dtb"
+
+# Offsets must match extensions/image-output-abl.sh
+/usr/bin/mkbootimg \
+	--kernel "${tmp}/Image.gz-dtb" \
+	--ramdisk "${ramdisk}" \
+	--base 0x0 \
+	--second_offset 0x00f00000 \
+	--cmdline "${ABL_CMDLINE_EXTRA} root=UUID=${root_uuid} slot_suffix=${abl_boot_partition_label#boot} ${extraargs}" \
+	--kernel_offset 0x8000 \
+	--ramdisk_offset 0x1000000 \
+	--tags_offset 0x100 \
+	--pagesize 4096 \
+	-o /boot/armbian-kernel.img
+
+if [[ -z "${abl_boot_partition_label}" ]]; then
+	echo "zz-update-abl-kernel: abl_boot_partition_label not set in /boot/armbianEnv.txt, not flashing"
+	exit 0
+fi
+part="/dev/disk/by-partlabel/${abl_boot_partition_label}"
+[[ -b "${part}" ]] || {
+	echo "zz-update-abl-kernel: ${part} not found, not flashing" >&2
+	exit 1
+}
+echo "zz-update-abl-kernel: writing /boot/armbian-kernel.img to ${part}"
+dd if=/boot/armbian-kernel.img of="${part}" bs=1M conv=fsync status=none

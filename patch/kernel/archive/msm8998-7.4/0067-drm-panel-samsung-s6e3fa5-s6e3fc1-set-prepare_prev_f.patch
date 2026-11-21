@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 21 Nov 2026 22:50:26 +0100
+Subject: [PATCH] drm/panel: samsung-s6e3fa5/s6e3fc1: set prepare_prev_first
+
+The panels send DCS commands from .prepare(); the DSI host must be
+powered up first, otherwise the first command (exit sleep mode) fails
+with -EINVAL and the panel stays dark.
+---
+ drivers/gpu/drm/panel/panel-samsung-s6e3fa5.c | 2 ++
+ drivers/gpu/drm/panel/panel-samsung-s6e3fc1.c | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/drivers/gpu/drm/panel/panel-samsung-s6e3fa5.c b/drivers/gpu/drm/panel/panel-samsung-s6e3fa5.c
+index c0b15cf10e9c..fb7a37f3fbdb 100644
+--- a/drivers/gpu/drm/panel/panel-samsung-s6e3fa5.c
++++ b/drivers/gpu/drm/panel/panel-samsung-s6e3fa5.c
+@@ -311,6 +311,8 @@ static int s6e3fa5_probe(struct mipi_dsi_device *dsi)
+ 		return ret;
+ 	}
+ 
++	ctx->panel.prepare_prev_first = true;
++
+ 	ctx->panel.backlight = s6e3fa5_create_backlight(dsi);
+ 	if (IS_ERR(ctx->panel.backlight))
+ 		return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
+diff --git a/drivers/gpu/drm/panel/panel-samsung-s6e3fc1.c b/drivers/gpu/drm/panel/panel-samsung-s6e3fc1.c
+index cfcde92a6c32..14fe9e5168bb 100644
+--- a/drivers/gpu/drm/panel/panel-samsung-s6e3fc1.c
++++ b/drivers/gpu/drm/panel/panel-samsung-s6e3fc1.c
+@@ -292,6 +292,8 @@ static int s6e3fc1_probe(struct mipi_dsi_device *dsi)
+ 	dsi->mode_flags = MIPI_DSI_MODE_VIDEO_BURST | MIPI_DSI_MODE_VIDEO_HSE |
+ 			  MIPI_DSI_CLOCK_NON_CONTINUOUS;
+ 
++	ctx->panel.prepare_prev_first = true;
++
+ 	ctx->panel.backlight = s6e3fc1_create_backlight(dsi);
+ 	if (IS_ERR(ctx->panel.backlight))
+ 		return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
+-- 
+2.47.3
+

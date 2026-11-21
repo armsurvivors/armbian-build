@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabricio Akio <fabricioakio@gmail.com>
+Date: Fri, 2 Oct 2026 08:02:40 -0300
+Subject: power: supply: pmi8998_fg: keep an unknown status when the read fails
+
+When reading the charger's status fails, the notifier sets the status
+to unknown and then overwrites it with the property value, which the
+failed read may have left unset.
+
+Take the charger's status only when the read succeeded.
+
+Signed-off-by: Fabricio Akio <fabricioakio@gmail.com>
+---
+ drivers/power/supply/pmi8998_fg.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/supply/pmi8998_fg.c b/drivers/power/supply/pmi8998_fg.c
+index 111111111111..222222222222 100644
+--- a/drivers/power/supply/pmi8998_fg.c
++++ b/drivers/power/supply/pmi8998_fg.c
+@@ -524,8 +524,8 @@ static int pmi8998_fg_notifier_call(struct notifier_block *nb, unsigned long val
+ 						POWER_SUPPLY_PROP_STATUS, &propval);
+ 		if (ret)
+ 			chip->status = POWER_SUPPLY_STATUS_UNKNOWN;
+-
+-		chip->status = propval.intval;
++		else
++			chip->status = propval.intval;
+ 
+ 		power_supply_changed(chip->batt_psy);
+ 
+-- 
+Armbian
+

@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabricio Akio <fabricioakio@gmail.com>
+Date: Wed, 7 Oct 2026 15:53:30 -0300
+Subject: power: supply: pmi8998_fg: wait for the charger named in
+ power-supplies
+
+devm_power_supply_get_by_reference() returns NULL when the supply named
+in power-supplies is not registered yet, and the probe then carries on
+without the charger: no notifier is registered, so the battery supply
+neither reports the charger's status nor follows its changes.
+fw_devlink orders the two from power-supplies, but drops that order at
+the deferred probe timeout if the charger's driver has not been loaded
+by then.
+
+Defer the probe until the named charger is registered, and look it up
+before registering the battery, so that a retry does not register and
+remove the battery supply each time.
+
+Signed-off-by: Fabricio Akio <fabricioakio@gmail.com>
+---
+ drivers/power/supply/pmi8998_fg.c | 21 ++++++----
+ 1 file changed, 12 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/power/supply/pmi8998_fg.c b/drivers/power/supply/pmi8998_fg.c
+index 111111111111..222222222222 100644
+--- a/drivers/power/supply/pmi8998_fg.c
++++ b/drivers/power/supply/pmi8998_fg.c
+@@ -625,6 +625,18 @@ static int pmi8998_fg_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 
++	/* The charger named in power-supplies, if any, for status checking */
++	chip->chg_psy = devm_power_supply_get_by_reference(chip->dev,
++							   "power-supplies");
++	if (!chip->chg_psy)
++		return dev_err_probe(chip->dev, -EPROBE_DEFER,
++				     "Charger supply not registered yet\n");
++	if (IS_ERR(chip->chg_psy)) {
++		ret = PTR_ERR(chip->chg_psy);
++		dev_warn(chip->dev, "Failed to get charger supply: %d\n", ret);
++		chip->chg_psy = NULL;
++	}
++
+ 	supply_config.drv_data = chip;
+ 
+ 	chip->batt_psy = devm_power_supply_register(chip->dev,
+@@ -653,15 +665,6 @@ static int pmi8998_fg_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 
+-	/* Optional: Get charger power supply for status checking */
+-	chip->chg_psy = devm_power_supply_get_by_reference(chip->dev,
+-							   "power-supplies");
+-	if (IS_ERR(chip->chg_psy)) {
+-		ret = PTR_ERR(chip->chg_psy);
+-		dev_warn(chip->dev, "Failed to get charger supply: %d\n", ret);
+-		chip->chg_psy = NULL;
+-	}
+-
+ 	if (chip->chg_psy) {
+ 		INIT_DELAYED_WORK(&chip->status_changed_work,
+ 				  pmi8998_fg_status_changed_worker);
+-- 
+Armbian
+

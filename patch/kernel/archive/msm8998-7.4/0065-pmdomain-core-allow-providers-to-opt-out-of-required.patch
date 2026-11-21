@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 21 Nov 2026 22:33:04 +0100
+Subject: [PATCH] pmdomain: core: allow providers to opt out of required-OPP
+ linking
+
+Since genpd links a single-domain consumer's required-opps right after
+->attach_dev(), a provider that populates the consumer's OPP table in
+->attach_dev() (CPR3 on CPR-Hardened) makes dev_pm_opp_set_config() WARN
+and fail with -EBUSY, and the attach fails.
+
+Add GENPD_FLAG_NO_REQUIRED_OPP_DEV to skip that step, and set it on the
+CPRh threads in CPR3: OSM does the DVFS in hardware and CPR3 parses the
+required-opps from DT itself.
+---
+ drivers/pmdomain/core.c      | 3 ++-
+ drivers/pmdomain/qcom/cpr3.c | 7 +++++++
+ include/linux/pm_domain.h    | 6 ++++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pmdomain/core.c b/drivers/pmdomain/core.c
+index 964e44c2f78f..b7bea40b87ef 100644
+--- a/drivers/pmdomain/core.c
++++ b/drivers/pmdomain/core.c
+@@ -191,6 +191,7 @@ static const struct genpd_lock_ops genpd_raw_spin_ops = {
+ #define genpd_is_no_sync_state(genpd)	(genpd->flags & GENPD_FLAG_NO_SYNC_STATE)
+ #define genpd_is_no_stay_on(genpd)	(genpd->flags & GENPD_FLAG_NO_STAY_ON)
+ #define genpd_is_power_unknown(genpd)	(genpd->flags & GENPD_FLAG_POWER_UNKNOWN)
++#define genpd_is_no_required_opp_dev(genpd)	(genpd->flags & GENPD_FLAG_NO_REQUIRED_OPP_DEV)
+ 
+ static inline bool irq_safe_dev_in_sleep_domain(struct device *dev,
+ 		const struct generic_pm_domain *genpd)
+@@ -3516,7 +3517,7 @@ static int __genpd_dev_pm_attach(struct device *dev, struct device *base_dev,
+ 	 * let's try to assign a required dev in that case. In the multiple PM
+ 	 * domains case, we need platform code to specify the index.
+ 	 */
+-	if (num_domains == 1) {
++	if (num_domains == 1 && !genpd_is_no_required_opp_dev(pd)) {
+ 		ret = genpd_set_required_opp_dev(dev, base_dev);
+ 		if (ret)
+ 			goto err;
+diff --git a/drivers/pmdomain/qcom/cpr3.c b/drivers/pmdomain/qcom/cpr3.c
+index de24973978b7..07b1e64abf9c 100644
+--- a/drivers/pmdomain/qcom/cpr3.c
++++ b/drivers/pmdomain/qcom/cpr3.c
+@@ -2442,6 +2442,13 @@ static int cpr_thread_init(struct cpr_drv *drv, int tid)
+ 	/* Anything later than CPR1 must be always-on for now */
+ 	thread->pd.flags = GENPD_FLAG_ALWAYS_ON;
+ 
++	/*
++	 * On CPRh ->attach_dev() populates the CPU OPP table; genpd must not
++	 * try to link required-opps on it afterwards (and nothing uses it).
++	 */
++	if (desc->cpr_type == CTRL_TYPE_CPRH)
++		thread->pd.flags |= GENPD_FLAG_NO_REQUIRED_OPP_DEV;
++
+ 	drv->cell_data.domains[tid] = &thread->pd;
+ 
+ 	ret = pm_genpd_init(&thread->pd, NULL, false);
+diff --git a/include/linux/pm_domain.h b/include/linux/pm_domain.h
+index 14e0e346c610..dcae7dce4aac 100644
+--- a/include/linux/pm_domain.h
++++ b/include/linux/pm_domain.h
+@@ -129,6 +129,11 @@ struct dev_pm_domain_list {
+  *				powered on during boot, genpd will prevent it
+  *				from being powered off until the ->sync_state
+  *				callback is invoked for it.
++ *
++ * GENPD_FLAG_NO_REQUIRED_OPP_DEV: Don't link the consumer's required-opps to
++ *				the PM domain when a single PM domain gets
++ *				attached. For providers whose ->attach_dev()
++ *				populates the consumer's OPP table themselves.
+  */
+ #define GENPD_FLAG_PM_CLK	 (1U << 0)
+ #define GENPD_FLAG_IRQ_SAFE	 (1U << 1)
+@@ -142,6 +147,7 @@ struct dev_pm_domain_list {
+ #define GENPD_FLAG_NO_SYNC_STATE (1U << 9)
+ #define GENPD_FLAG_NO_STAY_ON	 (1U << 10)
+ #define GENPD_FLAG_POWER_UNKNOWN (1U << 11)
++#define GENPD_FLAG_NO_REQUIRED_OPP_DEV (1U << 12)
+ 
+ enum gpd_status {
+ 	GENPD_STATE_ON = 0,	/* PM domain is on */
+-- 
+2.47.3
+

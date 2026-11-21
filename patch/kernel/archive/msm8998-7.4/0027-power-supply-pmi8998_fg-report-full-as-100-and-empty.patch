@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabricio Akio <fabricioakio@gmail.com>
+Date: Fri, 2 Oct 2026 14:18:17 -0300
+Subject: power: supply: pmi8998_fg: report full as 100% and empty as 0%
+
+The fuel gauge reports its monotonic state of charge as a raw value
+from 0 to 255. The conversion spreads 1-254 over 1-99% and applies the
+same formula to the ends, so a full battery reads 99% and an empty one
+1%.
+
+Report raw 255 as 100% and raw 0 as 0%, as Qualcomm's downstream driver
+does, and leave 1-254 as they are.
+
+Signed-off-by: Fabricio Akio <fabricioakio@gmail.com>
+---
+ drivers/power/supply/pmi8998_fg.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/power/supply/pmi8998_fg.c b/drivers/power/supply/pmi8998_fg.c
+index 111111111111..222222222222 100644
+--- a/drivers/power/supply/pmi8998_fg.c
++++ b/drivers/power/supply/pmi8998_fg.c
+@@ -157,7 +157,12 @@ static int pmi8998_fg_get_capacity(struct pmi8998_fg_chip *chip, int *val)
+ 	if (cap[0] != cap[1])
+ 		cap[0] = cap[0] < cap[1] ? cap[0] : cap[1];
+ 
+-	*val = DIV_ROUND_CLOSEST((cap[0] - 1) * 98, 0xff - 2) + 1;
++	if (cap[0] == 0xff)
++		*val = 100;
++	else if (cap[0] == 0)
++		*val = 0;
++	else
++		*val = DIV_ROUND_CLOSEST((cap[0] - 1) * 98, 0xff - 2) + 1;
+ 
+ 	return 0;
+ }
+-- 
+Armbian
+

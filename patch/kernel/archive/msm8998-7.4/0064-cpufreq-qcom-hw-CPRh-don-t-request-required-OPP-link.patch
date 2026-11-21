@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ricardo Pardini <ricardo@pardini.net>
+Date: Sat, 21 Nov 2026 22:27:37 +0100
+Subject: [PATCH] cpufreq: qcom-hw: CPRh: don't request required-OPP linking
+
+The CPR3 attach_dev callback populates the shared CPU OPP table while
+the power domain attaches; devm_pm_domain_attach_list() with
+PD_FLAG_REQUIRED_OPP then calls dev_pm_opp_set_config() on the already
+populated table, which WARNs and fails with -EBUSY, so no cpufreq
+policy gets registered on MSM8998.
+
+OSM does the DVFS in hardware and the driver only reads the CPR-adjusted
+voltages from the CPU OPP table, so drop PD_FLAG_REQUIRED_OPP.
+---
+ drivers/cpufreq/qcom-cpufreq-hw.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/cpufreq/qcom-cpufreq-hw.c b/drivers/cpufreq/qcom-cpufreq-hw.c
+index 5bee8f110eb6..8d6998dafa73 100644
+--- a/drivers/cpufreq/qcom-cpufreq-hw.c
++++ b/drivers/cpufreq/qcom-cpufreq-hw.c
+@@ -296,10 +296,16 @@ static struct {
+ } qcom_cpufreq;
+ 
+ static const char * const cprh_genpd_names[] = { "perf" };
++/*
++ * No PD_FLAG_REQUIRED_OPP: the CPR3 attach_dev callback populates the (shared)
++ * CPU OPP table while the genpd attaches, and dev_pm_opp_set_config() refuses
++ * an already populated table. OSM does the DVFS in hardware; we only read the
++ * CPR-adjusted voltages, so the required-opps link is not needed.
++ */
+ static const struct dev_pm_domain_attach_data cprh_pd_data = {
+ 	.pd_names = cprh_genpd_names,
+ 	.num_pd_names = ARRAY_SIZE(cprh_genpd_names),
+-	.pd_flags = PD_FLAG_DEV_LINK_ON | PD_FLAG_REQUIRED_OPP,
++	.pd_flags = PD_FLAG_DEV_LINK_ON,
+ };
+ static unsigned long cpu_hw_rate, xo_rate;
+ static bool icc_scaling_enabled;
+-- 
+2.47.3
+
