@@ -13,5 +13,6 @@ copy_exec "/usr/bin/pkill"
 copy_exec "/usr/sbin/parted"
 copy_file config "/etc/protocols"
 copy_file config "/etc/shadow"
+[ -f /etc/default/usb-gadget-network ] && copy_file config "/etc/default/usb-gadget-network"
 
 mkdir -p "${DESTDIR}/etc/dropbear"

@@ -6,6 +6,11 @@ deviceinfo_manufacturer="Armbian"
 #deviceinfo_usb_idProduct=
 #deviceinfo_usb_serialnumber=
 
+# Optional settings, eg. USB_GADGET_ACM=yes to add an ACM serial function (ttyGS0 on the device),
+# USB_GADGET_IP=dhcp to not run the DHCP server (the device is a DHCP client on usb0, eg. bridged on the host)
+# shellcheck disable=SC1091
+[ -f /etc/default/usb-gadget-network ] && . /etc/default/usb-gadget-network
+
 setup_usb_network_configfs() {
 	# See: https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
 	CONFIGFS=/sys/kernel/config/usb_gadget
@@ -23,6 +28,9 @@ setup_usb_network_configfs() {
 	# Default values for USB-related deviceinfo variables
 	usb_idVendor="${deviceinfo_usb_idVendor:-0x1D6B}"   # Linux Foundation
 	usb_idProduct="${deviceinfo_usb_idProduct:-0x0103}" # NCM (Ethernet) Gadget
+	if [ "${USB_GADGET_ACM}" = "yes" ]; then
+		usb_idProduct="${deviceinfo_usb_idProduct:-0x0104}" # Multifunction Composite Gadget
+	fi
 	usb_serialnumber="${deviceinfo_usb_serialnumber:-0123456789}"
 	usb_network_function="ncm.usb0"
 
@@ -47,6 +55,17 @@ setup_usb_network_configfs() {
 	mkdir $CONFIGFS/g1/functions/"$usb_network_function" ||
 		echo "  Couldn't create $CONFIGFS/g1/functions/$usb_network_function"
 
+	# Fixed MAC addresses when the device is a DHCP client, so the host interface name and the lease are stable
+	if [ "${USB_GADGET_IP}" = "dhcp" ]; then
+		set_usbgadget_macs "$CONFIGFS/g1/functions/$usb_network_function"
+	fi
+
+	# Optional ACM serial function
+	if [ "${USB_GADGET_ACM}" = "yes" ]; then
+		mkdir $CONFIGFS/g1/functions/acm.GS0 ||
+			echo "  Couldn't create $CONFIGFS/g1/functions/acm.GS0"
+	fi
+
 	# Create configuration instance for the gadget
 	mkdir $CONFIGFS/g1/configs/c.1 ||
 		echo "  Couldn't create $CONFIGFS/g1/configs/c.1"
@@ -59,6 +78,10 @@ setup_usb_network_configfs() {
 	# Link the network instance to the configuration
 	ln -s $CONFIGFS/g1/functions/"$usb_network_function" $CONFIGFS/g1/configs/c.1 ||
 		echo "  Couldn't symlink $usb_network_function"
+	if [ "${USB_GADGET_ACM}" = "yes" ]; then
+		ln -s $CONFIGFS/g1/functions/acm.GS0 $CONFIGFS/g1/configs/c.1 ||
+			echo "  Couldn't symlink acm.GS0"
+	fi
 
 	# Check if there's an USB Device Controller
 	if [ -z "$(ls /sys/class/udc)" ]; then
@@ -70,6 +93,23 @@ setup_usb_network_configfs() {
 	# See also: https://github.com/postmarketOS/pmbootstrap/issues/338
 	# shellcheck disable=SC2005
 	echo "$(ls /sys/class/udc)" > $CONFIGFS/g1/UDC || echo "  Couldn't write UDC"
+}
+
+# Locally administered MACs derived from the device serial (Android bootloader, DT or machine-id)
+set_usbgadget_macs() {
+	local func="$1" seed="" hash
+	seed="$(sed -n 's/.*androidboot.serialno=\([^ ]*\).*/\1/p' /proc/cmdline)"
+	[ -z "$seed" ] && [ -r /sys/firmware/devicetree/base/serial-number ] && seed="$(tr -d '\0' < /sys/firmware/devicetree/base/serial-number)"
+	[ -z "$seed" ] && [ -r /etc/machine-id ] && seed="$(cat /etc/machine-id)"
+	if [ -z "$seed" ]; then
+		echo "  No device serial found, using random MAC addresses"
+		return
+	fi
+	hash="$(echo "$seed" | md5sum | cut -c1-8)"
+	local base
+	base="$(echo "$hash" | sed 's/\(..\)\(..\)\(..\)\(..\)/\1:\2:\3:\4/')"
+	echo "02:${base}:01" > "$func/dev_addr" || echo "  Couldn't set dev_addr"
+	echo "02:${base}:02" > "$func/host_addr" || echo "  Couldn't set host_addr"
 }
 
 set_usbgadget_ipaddress() {
@@ -102,4 +142,8 @@ set_usbgadget_ipaddress() {
 	return
 }
 setup_usb_network_configfs
-set_usbgadget_ipaddress
+if [ "${USB_GADGET_IP}" = "dhcp" ]; then
+	ip link set usb0 up 2> /dev/null || echo "  Couldn't bring up usb0"
+else
+	set_usbgadget_ipaddress
+fi

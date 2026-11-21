@@ -57,6 +57,12 @@ update_initramfs() {
 	initrd_files_to_hash+=("${chroot_target}/etc/initramfs-tools" "${chroot_target}/usr/share/initramfs-tools/")
 	initrd_files_to_hash+=("${chroot_target}/etc/modprobe.d") # for MODULES_BLACKLIST
 
+	# Files copied into the initrd by bsp hooks from outside the paths above (packages/bsp/usb-gadget-network)
+	declare initrd_extra_file
+	for initrd_extra_file in /usr/local/bin/setup-usbgadget-network.sh /etc/default/usb-gadget-network; do
+		[[ -f "${chroot_target}${initrd_extra_file}" ]] && initrd_files_to_hash+=("${chroot_target}${initrd_extra_file}")
+	done
+
 	if [[ $CRYPTROOT_ENABLE == yes ]]; then
 		if [[ $CRYPTROOT_SSH_UNLOCK == yes ]]; then
 			[[ -d "${chroot_target}/etc/dropbear-initramfs/" ]] && initrd_files_to_hash+=("${chroot_target}/etc/dropbear-initramfs/")
