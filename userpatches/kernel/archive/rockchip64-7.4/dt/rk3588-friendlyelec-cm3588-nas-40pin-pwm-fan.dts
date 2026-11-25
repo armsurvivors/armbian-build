@@ -11,7 +11,7 @@
 		compatible = "pwm-fan";
 		#cooling-cells = <2>;
 		/* level 0 is the idle floor: non-zero so the fan always spins; tune to the fan's minimum stable duty */
-		cooling-levels = <26 26 51 77 102 128 153 179 204 230 255>;
+		cooling-levels = <26 27 28 31 42 128 153 179 204 230 255>;
 		pwms = <&pwm5 0 50000 0>; /* GPIO 40-pin Connector pin 32 - and NOT the original pwm1 which MOSFET-drives the built-in small-connector "5v fan" */
 		fan-supply = <&vcc_5v0_sys>;
 		pulses-per-revolution = <2>;
